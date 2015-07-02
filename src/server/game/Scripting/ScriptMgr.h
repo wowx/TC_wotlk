@@ -904,6 +904,7 @@ class LuaVal;
 // 
 // 			void HandlePrint(Player *sender, const LuaVal &args)
 // 			{
+//				//LuaVal args in a handler function is always a table
 // 				//Handler arguments index starts from 4
 // 				LuaVal &InputVal = args.get(4);
 // 				LuaVal &SliderVal = args.get(5);
@@ -921,6 +922,7 @@ class LuaVal;
 // 
 // 			void HandleSave(Player *sender, const LuaVal &args)
 // 			{
+//				//LuaVal args in a handler function is always a table
 // 				//Handler arguments index starts from 4
 // 				LuaVal &SaveVal = args.get(4);
 // 

@@ -808,7 +808,7 @@ class World
 		//
 		// It is required to call World::ForceReloadPlayerAddons()
 		// if addons are added after server is fully initialized
-		// for online players to load the added addons.// Adds addon to the list of 
+		// for online players to load the added addons.
 		void AddAddon(const std::string &name, const std::string &fileName, bool formatPath) { _AddAddon(name, fileName, true); }
 
 		// Adds WoW addon code to the list of addons with a unique

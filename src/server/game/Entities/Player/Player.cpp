@@ -909,6 +909,7 @@ Player::Player(WorldSession* session): Unit(true)
     m_achievementMgr = new AchievementMgr(this);
     m_reputationMgr = new ReputationMgr(this);
 
+	m_aioinitialized = false;
 	m_aioinit_cd = false;
 	m_aioinit_timer = 0;
 }

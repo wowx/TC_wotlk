@@ -1219,6 +1219,9 @@ class Player : public Unit, public GridObject<Player>
         /// Handles whispers from Addons and players based on sender, receiver's guid and language.
         void Whisper(std::string const& text, Language language, Player* receiver, bool = false) override;
 
+		//Returns whether AIO client has been initialized
+		bool AIOInitialized() const { return m_aioinitialized; }
+
 		// Sends an AIO message to the player
 		// See: class AIOMsg
 		void AIOMessage(AIOMsg &msg);
@@ -2677,8 +2680,11 @@ class Player : public Unit, public GridObject<Player>
 
         uint32 _activeCheats;
 
+		bool m_aioinitialized;
 		bool m_aioinit_cd;
 		uint32 m_aioinit_timer;
+
+		friend class AIOHandlers;
 };
 
 void AddItemsSetItem(Player* player, Item* item);
