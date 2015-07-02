@@ -110,7 +110,7 @@ protected:
 
 	// Registers a handler function to call when handling
 	// handlerName of this script.
-	void AddHandler(const char *handlerName, HandlerFunc function); //!!!!!!!!!LuaVal of FuncType is always table value
+	void AddHandler(const char *handlerName, HandlerFunc function);
 
 	// Adds a client side handler to call and adds arguments
 	// to sends with it for AIO client addon initialization.
@@ -185,7 +185,8 @@ void Player::AIOHandle(const std::string &scriptName, const std::string &handler
 	const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
 	const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
 
-
+// Sends a simple string message to all players
+//
 // AIO can only understand smallfolk LuaVal::dumps() format
 // Handler functions are called by creating a table as below
 // {
@@ -226,7 +227,7 @@ void World::ForceResetPlayerAddons();
 void World::AIOMessageAll(AIOMsg &msg);
 
 // Sends a simple string message to all players
-
+//
 // AIO can only understand smallfolk LuaVal::dumps() format
 // Handler functions are called by creating a table as below
 // {
