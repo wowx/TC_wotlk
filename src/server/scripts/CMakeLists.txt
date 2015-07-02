@@ -37,6 +37,7 @@ if(SCRIPTS)
   include(Northrend/CMakeLists.txt)
   include(Events/CMakeLists.txt)
   include(Pet/CMakeLists.txt)
+  include(AIO/CMakeLists.txt)
 endif()
 
 message(STATUS "SCRIPT PREPARATION COMPLETE")
@@ -52,6 +53,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/dep/SFMT
   ${CMAKE_SOURCE_DIR}/dep/cppformat
   ${CMAKE_SOURCE_DIR}/dep/zlib
+  ${CMAKE_SOURCE_DIR}/dep/smallfolk_cpp
   ${CMAKE_SOURCE_DIR}/src/server/shared
   ${CMAKE_SOURCE_DIR}/src/server/shared/Configuration
   ${CMAKE_SOURCE_DIR}/src/server/shared/Cryptography

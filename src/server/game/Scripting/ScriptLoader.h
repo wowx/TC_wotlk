@@ -31,5 +31,6 @@ void AddPetScripts();
 void AddBattlegroundScripts();
 void AddOutdoorPvPScripts();
 void AddCustomScripts();
+void AddAIOScripts();
 
 #endif

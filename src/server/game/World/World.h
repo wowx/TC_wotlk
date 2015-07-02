@@ -35,12 +35,18 @@
 #include <set>
 #include <list>
 
+#define AIO_VERSION 1.6
+#define AIO_VERSION_STRING "1.6"
+
 class Object;
 class WorldPacket;
 class WorldSession;
 class Player;
 class WorldSocket;
 class SystemMgr;
+
+class LuaVal;
+class AIOMsg;
 
 // ServerMessages.dbc
 enum ServerMessageType
@@ -161,6 +167,8 @@ enum WorldBoolConfigs
     CONFIG_ALLOW_TRACK_BOTH_RESOURCES,
     CONFIG_CALCULATE_CREATURE_ZONE_AREA_DATA,
     CONFIG_CALCULATE_GAMEOBJECT_ZONE_AREA_DATA,
+	CONFIG_AIO_OBFUSCATE,
+	CONFIG_AIO_COMPRESS,
     BOOL_CONFIG_VALUE_COUNT
 };
 
@@ -347,6 +355,7 @@ enum WorldIntConfigs
     CONFIG_CHARTER_COST_ARENA_5v5,
     CONFIG_NO_GRAY_AGGRO_ABOVE,
     CONFIG_NO_GRAY_AGGRO_BELOW,
+	CONFIG_AIO_MAXPARTS,
     INT_CONFIG_VALUE_COUNT
 };
 
@@ -761,7 +770,19 @@ class World
 
         void ReloadRBAC();
 
+		std::string GetAIOPrefix() const { return m_aioprefix; }
+		std::string GetAIOClientScriptPath() const { return m_aioclientpath; }
+		size_t PrepareClientAddons(const LuaVal &clientData, LuaVal &addonsTable, LuaVal &cacheTable) const;
+		void ForceReloadPlayerAddons();
+		void ForceResetPlayerAddons();
+		void AIOMessageAll(AIOMsg &msg);
+		void SendAllSimpleAIOMessage(const std::string &message);
+
     protected:
+		void AddAddon(const std::string &name, const std::string &fileName, bool formatPath);
+		void AddAddonCode(const std::string &name, const std::string &code, const std::string &file);
+		void ReloadAddons();
+
         void _UpdateGameTime();
         // callback for UpdateRealmCharacters
         void _UpdateRealmCharCount(PreparedQueryResult resultCharCount);
@@ -863,6 +884,25 @@ class World
 
         void ProcessQueryCallbacks();
         std::deque<std::future<PreparedQueryResult>> m_realmCharCallbacks;
+
+		struct AIOAddonCode
+		{
+			std::string name;
+			std::string code;
+			std::string file;
+			uint32 crc;
+
+			AIOAddonCode(const std::string &name, const std::string &code, uint32 crc, const std::string &file)
+				: name(name), code(code), crc(crc), file(file)
+			{ }
+		};
+		typedef std::list<AIOAddonCode> AddonCodeListType;
+		AddonCodeListType m_AddonList;
+		std::string m_aioprefix;
+		std::string m_aioclientpath;
+
+		friend class AIOScript;
+		friend class caio_commandscript;
 };
 
 extern uint32 realmID;

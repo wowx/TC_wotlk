@@ -3361,3 +3361,35 @@ PacketSpoof.BanDuration = 86400
 
 #
 ###################################################################################################
+
+###################################################################################################
+#
+# AIO settings
+#
+#    AIO.prefix
+#        Prefix string used for AIO addon messages
+#        Default: "AIO"
+#
+#    AIO.MaxParts
+#        Maximum number of parts a client can send to server
+#        Each part can have maximum 255 bytes
+#        Default: 4
+#
+#    AIO.ClientScriptPath
+#        Path to client lua scripts to send to the client
+#        Default: "lua_client_scripts"
+#
+#    AIO.Obfuscate
+#        Whether to obfuscate before sending addon code
+#        Default: 1
+#
+#    AIO.Compress
+#        Whether to compress before sending addon code
+#        Default: 1
+#
+
+AIO.Prefix = "AIO"
+AIO.MaxParts = 4
+AIO.ClientScriptPath = "lua_client_scripts"
+AIO.Obfuscate = 1
+AIO.Compress = 1

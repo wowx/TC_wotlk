@@ -870,6 +870,58 @@ class GroupScript : public ScriptObject
         virtual void OnDisband(Group* /*group*/) { }
 };
 
+class LuaVal;
+class AIOScript : public ScriptObject
+{
+    public:
+        bool IsDatabaseBound() const { return false; }
+
+	protected:
+		AIOScript(const char *name);
+
+		typedef std::function<void(Player*, const LuaVal&)> HandlerFunc;
+		typedef std::function<LuaVal(Player*)> ArgFunc;
+		void AddHandler(const char *handlerName, HandlerFunc function); //LuaVal of FuncType is always table value
+		void AddInitArgs(const std::string &scriptName, const std::string &handlerName,
+			ArgFunc a1 = ArgFunc(), ArgFunc a2 = ArgFunc(), ArgFunc a3 = ArgFunc(),
+			ArgFunc a4 = ArgFunc(), ArgFunc a5 = ArgFunc(), ArgFunc a6 = ArgFunc());
+		void AddAddon(const std::string &name, const std::string &fileName);
+		void AddAddonCode(const std::string &name, const std::string &code);
+
+	private:
+		void OnHandle(Player *sender, const std::string &scriptName, const std::string &handlerName, const LuaVal &args);
+
+		typedef std::map<std::string, HandlerFunc> HandlerMapType;
+		HandlerMapType _handlerMap;
+
+		friend class ScriptMgr;
+};
+
+class AIOHandlers : public AIOScript
+{
+	private:
+		AIOHandlers();
+		void HandleInit(Player *sender, const LuaVal &args);
+		void HandleError(Player *sender, const LuaVal &args);
+
+		struct InitHookInfo
+		{
+			std::string scriptName;
+			std::string handlerName;
+			std::list<AIOScript::ArgFunc> argsList;
+
+			InitHookInfo(const std::string &scriptName, const std::string &handlerName)
+				: scriptName(scriptName), handlerName(handlerName)
+			{ }
+		};
+
+		typedef std::list<InitHookInfo> HookListType;
+		HookListType _initHookList;
+
+		friend class ScriptMgr;
+		friend class AIOScript;
+};
+
 // Placed here due to ScriptRegistry::AddScript dependency.
 #define sScriptMgr ScriptMgr::instance()
 
@@ -886,6 +938,7 @@ class GroupScript : public ScriptObject
 class ScriptMgr
 {
     friend class ScriptObject;
+	friend class AIOScript;
 
     private:
         ScriptMgr();
@@ -1137,9 +1190,14 @@ class ScriptMgr
         uint32 DecreaseScheduledScriptCount(size_t count) { return _scheduledScripts -= count; }
         bool IsScriptScheduled() const { return _scheduledScripts > 0; }
 
+	public: /* AIOScript */
+
+		void OnAddonMessage(Player *sender, const std::string &message);
+
     private:
 
         uint32 _scriptCount;
+		AIOHandlers *_aioHandlers;
 
         //atomic op counter for active scripts amount
         std::atomic<uint32> _scheduledScripts;

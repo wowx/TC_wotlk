@@ -79,6 +79,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "GameObjectAI.h"
+#include "AIOMsg.h"
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 
@@ -907,6 +908,9 @@ Player::Player(WorldSession* session): Unit(true)
     _activeCheats = CHEAT_NONE;
     m_achievementMgr = new AchievementMgr(this);
     m_reputationMgr = new ReputationMgr(this);
+
+	m_aioinit_cd = false;
+	m_aioinit_timer = 0;
 }
 
 Player::~Player()
@@ -1890,6 +1894,17 @@ void Player::Update(uint32 p_time)
     //because we don't want player's ghost teleported from graveyard
     if (IsHasDelayedTeleport() && IsAlive())
         TeleportTo(m_teleport_dest, m_teleport_options);
+
+	//AIO Init cooldown
+	if(m_aioinit_cd)
+	{
+		m_aioinit_timer += p_time;
+		if(m_aioinit_timer >= 5000)
+		{
+			m_aioinit_cd = false;
+			m_aioinit_timer = 0;
+		}
+	}
 }
 
 void Player::setDeathState(DeathState s)
@@ -20511,6 +20526,49 @@ void Player::Whisper(std::string const& text, Language language, Player* target,
         ChatHandler(GetSession()).PSendSysMessage(LANG_PLAYER_AFK, target->GetName().c_str(), target->autoReplyMsg.c_str());
     else if (target->isDND())
         ChatHandler(GetSession()).PSendSysMessage(LANG_PLAYER_DND, target->GetName().c_str(), target->autoReplyMsg.c_str());
+}
+
+void Player::AIOMessage(AIOMsg &msg)
+{
+	SendSimpleAIOMessage(msg._val.dumps());
+}
+
+void Player::AIOHandle(const std::string &scriptName, const std::string &handlerName, const LuaVal &a1, const LuaVal &a2, const LuaVal &a3, const LuaVal &a4, const LuaVal &a5, const LuaVal &a6)
+{
+	AIOMsg msg;
+	msg.Add(scriptName, handlerName, a1, a2, a3, a4, a5, a6);
+	SendSimpleAIOMessage(msg._val.dumps());
+}
+
+void Player::SendSimpleAIOMessage(const std::string &message)
+{
+	if(message.empty())
+	{
+		return;
+	}
+
+	std::string fullmsg = "S" + sWorld->GetAIOPrefix() + "\t\x1\x1" + message;
+
+	WorldPacket data(SMSG_MESSAGECHAT, 200);
+	data << uint8(7);
+	data << int32(LANG_ADDON);
+	data << uint64(GetGUID());
+	data << uint32(0);
+	data << uint64(GetGUID());
+	data << uint32(fullmsg.length() + 1);
+	data << fullmsg;
+	data << uint8(0);
+	GetSession()->SendPacket(&data);
+}
+
+void Player::ForceReloadAddons()
+{
+	AIOHandle("AIO", "ForceReload");
+}
+
+void Player::ForceResetAddons()
+{
+	AIOHandle("AIO", "ForceReset");
 }
 
 Item* Player::GetMItem(uint32 id)

@@ -29,6 +29,8 @@
 #include "SpellMgr.h"
 #include "Unit.h"
 
+#include "smallfolk_cpp/smallfolk.h"
+
 #include <limits>
 #include <string>
 #include <vector>
@@ -52,6 +54,7 @@ class PlayerMenu;
 class PlayerSocial;
 class SpellCastTargets;
 class UpdateMask;
+class AIOMsg;
 
 struct CharacterCustomizeInfo;
 
@@ -1215,6 +1218,17 @@ class Player : public Unit, public GridObject<Player>
         void TextEmote(std::string const& text, WorldObject const* = nullptr, bool = false) override;
         /// Handles whispers from Addons and players based on sender, receiver's guid and language.
         void Whisper(std::string const& text, Language language, Player* receiver, bool = false) override;
+
+		void AIOMessage(AIOMsg &msg);
+		void AIOHandle(const std::string &scriptName, const std::string &handlerName,
+			const LuaVal &a1 = LuaVal(), const LuaVal &a2 = LuaVal(), const LuaVal &a3 = LuaVal(),
+			const LuaVal &a4 = LuaVal(), const LuaVal &a5 = LuaVal(), const LuaVal &a6 = LuaVal());
+		void SendSimpleAIOMessage(const std::string &message);
+		void ForceReloadAddons();
+		void ForceResetAddons();
+
+		bool isAIOInitOnCooldown() const { return m_aioinit_cd; }
+		void setAIOIntOnCooldown(bool cd) { m_aioinit_cd = cd; m_aioinit_timer = 0; }
 
         /*********************************************************/
         /***                    STORAGE SYSTEM                 ***/
@@ -2642,6 +2656,9 @@ class Player : public Unit, public GridObject<Player>
         uint32 _pendingBindTimer;
 
         uint32 _activeCheats;
+
+		bool m_aioinit_cd;
+		uint32 m_aioinit_timer;
 };
 
 void AddItemsSetItem(Player* player, Item* item);
