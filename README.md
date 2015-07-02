@@ -255,7 +255,7 @@ void World::AddAddon(const std::string &name, const std::string &fileName, bool 
 // It is required to call World::ForceReloadPlayerAddons()
 // if addons are added after server is fully initialized
 // for online players to load the added addons.
-void AddAddonCode(const std::string &name, const std::string &code, const std::string &file = "");
+void World::AddAddonCode(const std::string &name, const std::string &code, const std::string &file = "");
 ```
 
 ## Reporting issues and submitting fixes
