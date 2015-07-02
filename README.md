@@ -13,6 +13,18 @@ CAIO is currently only implemented on TrinityCore 3.3.5 branch.
 + Build/Install TrinityCore
 + Copy your client side addons to `TrinityCore_Installation_Dir/lua_client_scripts`
 
+## Todo
+
++ RemoveAddon()
++ AddAddon command
++ RemoveAddon command
++ Better AIO error handling
++ Config AIO buffer timeout
++ Config AIO error timeout
++ Config AIO init timeout
++ Config Max size cache
++ Obfuscate
++ Compress
 
 ## API reference
 
