@@ -871,22 +871,127 @@ class GroupScript : public ScriptObject
 };
 
 class LuaVal;
+
+// ##################### Abstract AIO handler script #####################
+// Inherit AIOScript to make an AIO handler script
+//
+// See smallfork_cpp at https://github.com/Rochet2/smallfolk_cpp for
+// reference on how to use LuaVal
+//
+// Example of use:
+//
+// 	class ExampleAIOScript : public AIOScript
+// 	{
+// 		public:
+// 			ExampleAIOScript()
+// 				: AIOScript("ExampleScriptName")
+// 			{
+// 				// Loads addon files to addons list and sends them on AIO client initialization
+// 				// Looks for the file in path config AIO.ClientScriptPath
+// 				AddAddon("ExampleAddon", "example_addon.lua");
+// 				AddAddon("AnotherAddon", "extras/another_addon.lua");
+// 
+// 				// Handler function signature: void HandlerFunction(Player *sender, const LuaVal &args)
+// 				AddHandler("Print", std::bind(&ExampleAIOScript::HandlePrint, this, std::placeholders::_1, std::placeholders::_2));
+// 				AddHandler("Save", std::bind(&ExampleAIOScript::HandleSave, this, std::placeholders::_1, std::placeholders::_2));
+// 
+// 				// Initialization handler and arguments
+// 				AddInitArgs("ExampleScriptName", "Init", std::bind(&ExampleAIOScript::InitArg, this, std::placeholders::_1), std::bind(&ExampleAIOScript::InitArg, this, std::placeholders::_1));
+// 				//Adds additional argument to send to handler
+// 				AddInitArgs("ExampleScriptName", "Init", std::bind(&ExampleAIOScript::InitArg2, this, std::placeholders::_1));
+// 				AddInitArgs("AnotherScript", "InitB"); //Arguments are not required
+// 			}
+// 
+// 			void HandlePrint(Player *sender, const LuaVal &args)
+// 			{
+// 				//Handler arguments index starts from 4
+// 				LuaVal &InputVal = args.get(4);
+// 				LuaVal &SliderVal = args.get(5);
+// 
+// 				//MUST check if the value type is valid or else smallfolk_cpp will
+// 				//throw on obtaining that type
+// 				if(!InputVal.isstring() || !SliderVal.isnumber())
+// 				{
+// 					return;
+// 				}
+// 
+// 				sender->GetSession()->SendNotification("HandlePrint -> Stored String: %s, Input: %s, Slider Value: %f",
+// 					storedString.c_str(), InputVal.str().c_str(), SliderVal.num());
+// 			}
+// 
+// 			void HandleSave(Player *sender, const LuaVal &args)
+// 			{
+// 				//Handler arguments index starts from 4
+// 				LuaVal &SaveVal = args.get(4);
+// 
+// 				//MUST check if the value type is valid or else smallfolk_cpp will
+// 				//throw on obtaining that type
+// 				if(!SaveVal.isstring())
+// 				{
+// 					return;
+// 				}
+// 
+// 				storedString = SaveVal.str();
+// 				sender->GetSession()->SendNotification("Saved");
+// 			}
+// 
+// 			LuaVal InitArg(Player *sender)
+// 			{
+// 				LuaVal arg = LuaVal(TTABLE);
+// 				arg.set("key", 12.3);
+// 				arg.set("key2", false);
+// 
+// 				return arg;
+// 			}
+// 
+// 			LuaVal InitArg2(Player *sender)
+// 			{
+// 				return "LuaVal will implicitly create a string LuaVal for this arg";
+// 			}
+// 
+// 		private:
+// 			std::string storedString;
+// 	};
 class AIOScript : public ScriptObject
 {
     public:
         bool IsDatabaseBound() const { return false; }
 
-	protected:
-		AIOScript(const char *name);
-
 		typedef std::function<void(Player*, const LuaVal&)> HandlerFunc;
 		typedef std::function<LuaVal(Player*)> ArgFunc;
-		void AddHandler(const char *handlerName, HandlerFunc function); //LuaVal of FuncType is always table value
+
+	protected:
+		// Registers an AIO Handler script of scriptName
+		AIOScript(const char *scriptName);
+
+		// Registers a handler function to call when handling
+		// handlerName of this script.
+		void AddHandler(const char *handlerName, HandlerFunc function); //!!!!!!!!!LuaVal of FuncType is always table value
+
+		// Adds a client side handler to call and adds arguments
+		// to sends with it for AIO client addon initialization.
+		
+		// You can add additional arguments to the handler by
+		// calling this function again
 		void AddInitArgs(const std::string &scriptName, const std::string &handlerName,
 			ArgFunc a1 = ArgFunc(), ArgFunc a2 = ArgFunc(), ArgFunc a3 = ArgFunc(),
 			ArgFunc a4 = ArgFunc(), ArgFunc a5 = ArgFunc(), ArgFunc a6 = ArgFunc());
-		void AddAddon(const std::string &name, const std::string &fileName);
-		void AddAddonCode(const std::string &name, const std::string &code);
+
+		// Adds a WoW addon file to the list of addons with a unique
+		// addon name to send on AIO client addon initialization.
+		//
+		// It is required to call World::ForceReloadPlayerAddons()
+		// if addons are added after server is fully initialized
+		// for online players to load the added addons.
+		void AddAddon(const std::string &addonName, const std::string &fileName);
+
+		// Adds WoW addon code to the list of addons with a unique
+		// addon name to send on AIO client addon initialization.
+		//
+		// It is required to call World::ForceReloadPlayerAddons()
+		// if addons are added after server is fully initialized
+		// for online players to load the added addons.
+		void AddAddonCode(const std::string &addonName, const std::string &code);
 
 	private:
 		void OnHandle(Player *sender, const std::string &scriptName, const std::string &handlerName, const LuaVal &args);

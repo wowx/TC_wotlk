@@ -3275,7 +3275,7 @@ void World::ReloadRBAC()
         if (WorldSession* session = itr->second)
             session->InvalidateRBACData();
 }
-void World::AddAddon(const std::string &name, const std::string &fileName, bool formatPath)
+void World::_AddAddon(const std::string &name, const std::string &fileName, bool formatPath)
 {
 	std::string path;
 	if(formatPath)
@@ -3358,7 +3358,7 @@ void World::ReloadAddons()
 			}
 			else
 			{
-				AddAddon(itr->name, itr->file, false);
+				_AddAddon(itr->name, itr->file, false);
 			}
 		}
 	}

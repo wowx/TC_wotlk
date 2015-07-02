@@ -1219,12 +1219,32 @@ class Player : public Unit, public GridObject<Player>
         /// Handles whispers from Addons and players based on sender, receiver's guid and language.
         void Whisper(std::string const& text, Language language, Player* receiver, bool = false) override;
 
+		// Sends an AIO message to the player
+		// See: class AIOMsg
 		void AIOMessage(AIOMsg &msg);
+
+		// Triggers an AIO script handler on the client
+		// To trigger multiple handlers in one message or add more arguments
+		// use Player::AIOMessage
 		void AIOHandle(const std::string &scriptName, const std::string &handlerName,
 			const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
 			const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
+
+		// AIO can only understand smallfolk LuaVal::dumps() format
+		// Handler functions are called by creating a table as below
+		// {
+		//     {n, ScriptName, HandlerName(optional), Arg1..N(optional) },
+		//     {n, AnotherScriptName, AnotherHandlerName(optional), Arg1..N(optional) }
+		// }
+		// Where n is number of arguments including handler name as a argument
 		void SendSimpleAIOMessage(const std::string &message);
+
+		// Forces a reload on the player addons
+		// Syncs player addons with addons in addon list
 		void ForceReloadAddons();
+
+		// Forces a reset on the player addons
+		// Player addons and addon data is deleted and downloaded again
 		void ForceResetAddons();
 
 		bool isAIOInitOnCooldown() const { return m_aioinit_cd; }

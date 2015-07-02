@@ -1723,7 +1723,7 @@ void AIOScript::AddInitArgs(const std::string &scriptName, const std::string &ha
 
 void AIOScript::AddAddon(const std::string &name, const std::string &fileName)
 {
-	sWorld->AddAddon(name, fileName, true);
+	sWorld->_AddAddon(name, fileName, true);
 }
 
 void AIOScript::AddAddonCode(const std::string &name, const std::string &code)
