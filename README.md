@@ -1,6 +1,6 @@
 ## Introduction
 
-CAIO is an server-client communication system for WoW AddOns. It is an extension of [AIO](https://github.com/Rochet2/AIO) to support C++ server side handling.
+CAIO is a server-client communication system for WoW AddOns. It is an extension of [AIO](https://github.com/Rochet2/AIO) to support C++ server side handling.
 CAIO is designed for sending lua addons and data to player from server and data from player to server.
 CAIO is currently only implemented on TrinityCore 3.3.5 branch.
 
@@ -14,13 +14,14 @@ CAIO is currently only implemented on TrinityCore 3.3.5 branch.
 + Copy your client side addons to `TrinityCore_Installation_Dir/lua_client_scripts`
 
 
-## Reporting issues and submitting fixes
-
-Issues can be reported via the [Github issue tracker](https://github.com/SaiFi0102/CAIO-For-Trinity/issues). Fixes can be submitted as pull requests via Github, read the [how-to: maintain a remote fork](http://www.trinitycore.org/f/topic/6037-howto-maintain-a-remote-fork-for-pull-requests-tortoisegit/).
-
 ## API documentation
 
 TODO
+
+
+## Reporting issues and submitting fixes
+
+Issues can be reported via the [Github issue tracker](https://github.com/SaiFi0102/CAIO-For-Trinity/issues). Fixes can be submitted as pull requests via Github.
 
 
 ## Copyright
@@ -30,5 +31,5 @@ TODO
 
 ## Authors &amp; Contributors
 
-Saif - CAIO
-Rochet2 - [AIO](https://github.com/Rochet2/AIO), [smallfolk_cpp](https://github.com/Rochet2/smallfolk_cpp)
++Saif - CAIO
++Rochet2 - [AIO](https://github.com/Rochet2/AIO), [smallfolk_cpp](https://github.com/Rochet2/smallfolk_cpp)
