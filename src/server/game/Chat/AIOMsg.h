@@ -11,10 +11,10 @@ class AIOMsg
 		AIOMsg();
 
 		AIOMsg &Add(const std::string &scriptName, const std::string &handlerName,
-			const LuaVal &a1 = LuaVal(), const LuaVal &a2 = LuaVal(), const LuaVal &a3 = LuaVal(),
-			const LuaVal &a4 = LuaVal(), const LuaVal &a5 = LuaVal(), const LuaVal &a6 = LuaVal());
-		AIOMsg &AppendLast(const LuaVal &a1 = LuaVal(), const LuaVal &a2 = LuaVal(), const LuaVal &a3 = LuaVal(),
-			const LuaVal &a4 = LuaVal(), const LuaVal &a5 = LuaVal(), const LuaVal &a6 = LuaVal());
+			const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
+			const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
+		AIOMsg &AppendLast(const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
+			const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
 
 	private:
 		LuaVal _val;

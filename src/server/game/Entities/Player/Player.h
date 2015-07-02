@@ -1221,8 +1221,8 @@ class Player : public Unit, public GridObject<Player>
 
 		void AIOMessage(AIOMsg &msg);
 		void AIOHandle(const std::string &scriptName, const std::string &handlerName,
-			const LuaVal &a1 = LuaVal(), const LuaVal &a2 = LuaVal(), const LuaVal &a3 = LuaVal(),
-			const LuaVal &a4 = LuaVal(), const LuaVal &a5 = LuaVal(), const LuaVal &a6 = LuaVal());
+			const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
+			const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
 		void SendSimpleAIOMessage(const std::string &message);
 		void ForceReloadAddons();
 		void ForceResetAddons();
