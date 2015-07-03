@@ -957,6 +957,7 @@ class LuaVal;
 class AIOScript : public ScriptObject
 {
     public:
+		~AIOScript();
         bool IsDatabaseBound() const { return false; }
 
 		typedef std::function<void(Player*, const LuaVal&)> HandlerFunc;
@@ -997,11 +998,22 @@ class AIOScript : public ScriptObject
 		// for online players to load the added addons.
 		bool AddAddonCode(const std::string &addonName, const std::string &code);
 
+		// Returns pointer to an AIO script by its name and typename.
+		// Returns null if scriptName doesn't exist or typename was incorrect.
+		template<class ScriptClass>
+		ScriptClass *GetScript(const std::string &scriptName);
+
+		template<>
+		AIOScript *GetScript(const std::string &scriptName);
+
 	private:
 		void OnHandle(Player *sender, const std::string &scriptName, const std::string &handlerName, const LuaVal &args);
 
 		typedef std::map<std::string, HandlerFunc> HandlerMapType;
 		HandlerMapType _handlerMap;
+
+		typedef std::map<std::string, AIOScript*> AIOScriptByNameMap;
+		static AIOScriptByNameMap _scriptByNameMap;
 
 		friend class ScriptMgr;
 };

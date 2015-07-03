@@ -1628,6 +1628,8 @@ GroupScript::GroupScript(const char* name)
     ScriptRegistry<GroupScript>::AddScript(this);
 }
 
+AIOScript::AIOScriptByNameMap AIOScript::_scriptByNameMap = AIOScript::AIOScriptByNameMap();
+
 void ScriptMgr::OnAddonMessage(Player *sender, const std::string &message)
 {
 	LuaVal Doc = LuaVal::loads(message.c_str());
@@ -1652,13 +1654,27 @@ void ScriptMgr::OnAddonMessage(Player *sender, const std::string &message)
 	std::string scriptName = scriptNameVal.str();
 	std::string handlerName = handlerNameVal.str();
 
-	FOREACH_SCRIPT(AIOScript)->OnHandle(sender, scriptName, handlerName, Args);
+	AIOScript *aioScript = _aioHandlers->GetScript<AIOScript>(scriptName);
+	if(aioScript)
+	{
+		aioScript->OnHandle(sender, scriptName, handlerName, Args);
+	}
 }
 
 AIOScript::AIOScript(const char *name)
     : ScriptObject(name)
 {
+	if(AIOScript::_scriptByNameMap.find("name") != AIOScript::_scriptByNameMap.end())
+	{
+		throw std::runtime_error(std::string("AIO scriptName '") + name + "' already exist. Use another name.");
+	}
 	ScriptRegistry<AIOScript>::AddScript(this);
+	AIOScript::_scriptByNameMap[name] = this;
+}
+
+AIOScript::~AIOScript()
+{
+	AIOScript::_scriptByNameMap.erase(GetName());
 }
 
 void AIOScript::AddHandler(const char *handlerName, HandlerFunc function)
@@ -1729,6 +1745,28 @@ bool AIOScript::AddAddon(const std::string &name, const std::string &fileName)
 bool AIOScript::AddAddonCode(const std::string &name, const std::string &code)
 {
 	return sWorld->AddAddonCode(name, code, "");
+}
+
+template<>
+AIOScript *AIOScript::GetScript(const std::string &scriptName)
+{
+	AIOScriptByNameMap::const_iterator itr = AIOScript::_scriptByNameMap.find(scriptName);
+	if(itr == AIOScript::_scriptByNameMap.end())
+	{
+		return 0;
+	}
+	return itr->second;
+}
+
+template<class ScriptClass>
+ScriptClass *AIOScript::GetScript(const std::string &scriptName)
+{
+	AIOScriptByNameMap::const_iterator itr = AIOScript::_scriptByNameMap.find(scriptName);
+	if(itr == AIOScript::_scriptByNameMap.end())
+	{
+		return 0;
+	}
+	return dynamic_cast<ScriptClass*>(itr->second);
 }
 
 void AIOScript::OnHandle(Player *sender, const std::string &scriptName, const std::string &handlerName, const LuaVal &args)

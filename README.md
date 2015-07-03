@@ -147,6 +147,11 @@ protected:
 	// if addons are added after server is fully initialized
 	// for online players to load the added addons.
 	bool AddAddonCode(const std::string &addonName, const std::string &code);
+	
+	// Returns pointer to an AIO script by its name and typename.
+	// Returns null if scriptName doesn't exist or typename was incorrect.
+	template<class ScriptClass>
+	ScriptClass *GetScript(const std::string &scriptName);
 }
 ```
 
@@ -297,12 +302,6 @@ bool World::RemoveAddon(const std::string &addonName);
 ## Reporting issues and submitting fixes
 
 Issues can be reported via the [Github issue tracker](https://github.com/SaiFi0102/CAIO-For-Trinity/issues). Fixes can be submitted as pull requests via Github.
-
-
-## Copyright
-
-TODO
-
 
 ## Authors, Contributors &amp; Thanks
 
