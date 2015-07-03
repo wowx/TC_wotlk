@@ -801,29 +801,40 @@ class World
 
 		// Reloads client side addon files in the list of addons
 		// and force reloads all player addons
-		void ReloadAddons();
+		// Returns true if successful, false if an error occurred
+		bool ReloadAddons();
 		
 		// Adds a WoW addon file to the list of addons with a unique
 		// addon name to send on AIO client addon initialization.
+		// Returns true if addon was added, false if addon name is already taken
 		//
 		// It is required to call World::ForceReloadPlayerAddons()
 		// if addons are added after server is fully initialized
 		// for online players to load the added addons.
-		void AddAddon(const std::string &name, const std::string &fileName, bool formatPath) { _AddAddon(name, fileName, true); }
+		bool AddAddon(const std::string &name, const std::string &fileName) { return _AddAddon(name, fileName, true); }
 
 		// Adds WoW addon code to the list of addons with a unique
 		// addon name to send on AIO client addon initialization.
+		// Returns true if addon code was added, false if addon name is already taken
 		//
 		// It is required to call World::ForceReloadPlayerAddons()
 		// if addons are added after server is fully initialized
 		// for online players to load the added addons.
-		void AddAddonCode(const std::string &name, const std::string &code, const std::string &file = "");
+		bool AddAddonCode(const std::string &addonName, const std::string &code, const std::string &file = "");
+
+		// Removes an addon from addon list
+		// Returns true if an addon was removed, false if addon not found
+		//
+		// It is required to call World::ForceReloadPlayerAddons()
+		// if addons are removed after server is fully initialized
+		// for online players to load the added addons.
+		bool RemoveAddon(const std::string &addonName);
 
 		// For internal use only
 		size_t PrepareClientAddons(const LuaVal &clientData, LuaVal &addonsTable, LuaVal &cacheTable) const;
 
     protected:
-		void _AddAddon(const std::string &name, const std::string &fileName, bool formatPath);
+		bool _AddAddon(const std::string &name, const std::string &fileName, bool formatPath);
 
         void _UpdateGameTime();
         // callback for UpdateRealmCharacters

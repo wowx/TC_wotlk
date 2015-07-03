@@ -26,6 +26,8 @@ class caio_commandscript : public CommandScript
 				{ "forcereloadall", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleReloadAllCommand, "", NULL },
 				{ "forceresetall", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleResetAllCommand, "", NULL },
 				{ "reloadaddons", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleReloadAddonsCommand, "", NULL },
+				{ "addaddon", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleAddAddonCommand, "", NULL },
+				{ "removeaddon", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleRemoveAddonCommand, "", NULL },
 				{ NULL, 0, false, NULL, "", NULL }
 			};
 			static ChatCommand commandTable[] =
@@ -123,8 +125,68 @@ class caio_commandscript : public CommandScript
 
 		static bool HandleReloadAddonsCommand(ChatHandler* handler, char const* args)
 		{
-			sWorld->ReloadAddons();
-			sWorld->ForceReloadPlayerAddons();
+			bool success = sWorld->ReloadAddons();
+
+			if(success)
+			{
+				sWorld->ForceReloadPlayerAddons();
+			}
+			else
+			{
+				handler->SendSysMessage("An error occurred during reload.");
+			}
+			return true;
+		}
+
+		static bool HandleAddAddonCommand(ChatHandler* handler, char const* args)
+		{
+			if(!*args)
+			{
+				return false;
+			}
+
+			char *addonName = strtok((char*)args, " ");
+			char *tailStr = strtok(NULL, " ");
+
+			if(!tailStr)
+			{
+				return false;
+			}
+			char *addonFile = handler->extractQuotedArg(tailStr);
+
+			if(!addonFile || !addonName)
+			{
+				return false;
+			}
+
+			bool added = sWorld->AddAddon(addonName, addonFile);
+
+			if(added)
+			{
+				sWorld->ForceReloadPlayerAddons();
+			}
+			else
+			{
+				handler->PSendSysMessage("Addon with name '%s' already exists or file not found.", addonName);
+			}
+			return true;
+		}
+
+		static bool HandleRemoveAddonCommand(ChatHandler* handler, char const* args)
+		{
+			char* tailStr = strtok((char*)args, " ");
+			if(!tailStr)
+				return false;
+
+			bool removed = sWorld->RemoveAddon(tailStr);
+			if(removed)
+			{
+				sWorld->ForceReloadPlayerAddons();
+			}
+			else
+			{
+				handler->PSendSysMessage("Addon with name '%s' not found.", tailStr);
+			}
 			return true;
 		}
 };

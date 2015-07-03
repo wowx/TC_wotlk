@@ -7,3 +7,5 @@ REPLACE INTO `command` (`name`, `permission`, `help`) VALUES ('caio sendall', 50
 REPLACE INTO `command` (`name`, `permission`, `help`) VALUES ('caio send', 5000, 'Syntax: .caio send $playerName "Message"\r\n\r\nSends an addon message to player');
 REPLACE INTO `command` (`name`, `permission`, `help`) VALUES ('caio version', 5000, 'Syntax: .caio version\r\n\r\nShows the AIO version');
 REPLACE INTO `command` (`name`, `permission`, `help`) VALUES ('caio reloadaddons', 5000, 'Syntax: .caio reloadaddons\r\n\r\nReloads all client addons loaded on the server');
+REPLACE INTO `command` (`name`, `permission`, `help`) VALUES ('caio addaddon', 5000, 'Syntax: .caio addaddon $addonName "$addonFile"\r\n\r\nAdds an addon to addon list and force reloads all player addons');
+REPLACE INTO `command` (`name`, `permission`, `help`) VALUES ('caio removeaddon', 5000, 'Syntax: .caio removeaddon $addonName\r\n\r\nRemoves an addon from addon list and force reloads all player addons');

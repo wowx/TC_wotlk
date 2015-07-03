@@ -1721,14 +1721,14 @@ void AIOScript::AddInitArgs(const std::string &scriptName, const std::string &ha
 	}
 }
 
-void AIOScript::AddAddon(const std::string &name, const std::string &fileName)
+bool AIOScript::AddAddon(const std::string &name, const std::string &fileName)
 {
-	sWorld->_AddAddon(name, fileName, true);
+	return sWorld->_AddAddon(name, fileName, true);
 }
 
-void AIOScript::AddAddonCode(const std::string &name, const std::string &code)
+bool AIOScript::AddAddonCode(const std::string &name, const std::string &code)
 {
-	sWorld->AddAddonCode(name, code, "");
+	return sWorld->AddAddonCode(name, code, "");
 }
 
 void AIOScript::OnHandle(Player *sender, const std::string &scriptName, const std::string &handlerName, const LuaVal &args)

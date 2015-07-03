@@ -3275,8 +3275,19 @@ void World::ReloadRBAC()
         if (WorldSession* session = itr->second)
             session->InvalidateRBACData();
 }
-void World::_AddAddon(const std::string &name, const std::string &fileName, bool formatPath)
+
+bool World::_AddAddon(const std::string &name, const std::string &fileName, bool formatPath)
 {
+	for(AddonCodeListType::iterator itr = m_AddonList.begin();
+		itr != m_AddonList.end();
+		++itr)
+	{
+		if(itr->name == name)
+		{
+			return false;
+		}
+	}
+
 	std::string path;
 	if(formatPath)
 	{
@@ -3301,16 +3312,27 @@ void World::_AddAddon(const std::string &name, const std::string &fileName, bool
 		in.seekg(0, std::ios::beg);
 		in.read(&code[0], code.size());
 		in.close();
-		AddAddonCode(name, code, path);
+		return AddAddonCode(name, code, path);
 	}
 	else
 	{
 		sLog->outMessage("AIO", LOG_LEVEL_ERROR, "AIO AddAddon: Couldn't open file %s of addon %s", path.c_str(), name.c_str());
+		return false;
 	}
 }
 
-void World::AddAddonCode(const std::string &name, const std::string &code, const std::string &file)
+bool World::AddAddonCode(const std::string &name, const std::string &code, const std::string &file)
 {
+	for(AddonCodeListType::iterator itr = m_AddonList.begin();
+		itr != m_AddonList.end();
+		++itr)
+	{
+		if(itr->name == name)
+		{
+			return false;
+		}
+	}
+
 	char compressPrefix = 'U';
 	if(sWorld->getBoolConfig(CONFIG_AIO_OBFUSCATE))
 	{
@@ -3339,10 +3361,27 @@ void World::AddAddonCode(const std::string &name, const std::string &code, const
 	{
 		sLog->outMessage("AIO", LOG_LEVEL_INFO, "AIO: Loaded addon %s from file %s", name.c_str(), file.c_str());
 	}
+	return true;
 }
 
-void World::ReloadAddons()
+bool World::RemoveAddon(const std::string &addonName)
 {
+	for(AddonCodeListType::iterator itr = m_AddonList.begin();
+		itr != m_AddonList.end();)
+	{
+		if(itr->name == addonName)
+		{
+			m_AddonList.erase(itr);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool World::ReloadAddons()
+{
+	sLog->outMessage("AIO", LOG_LEVEL_INFO, "World::ReloadAddons()");
+
 	AddonCodeListType prevAddonList;
 	prevAddonList.swap(m_AddonList);
 
@@ -3366,7 +3405,9 @@ void World::ReloadAddons()
 	{
 		sLog->outMessage("AIO", LOG_LEVEL_ERROR, "AIO: Error reloading addons");
 		m_AddonList.swap(prevAddonList);
+		return false;
 	}
+	return true;
 }
 
 size_t World::PrepareClientAddons(const LuaVal &clientData, LuaVal &addonsTable, LuaVal &cacheTable) const

@@ -26,7 +26,19 @@ private:
 			return;
 		}
 
-		sender->GetSession()->SendNotification("HandlePrint -> Button Name: %s, Input: %s, Slider Value: %f", btn.str().c_str(), inp.str().c_str(), val.num());
+		ChatHandler(sender->GetSession()).PSendSysMessage("HandlePrint -> Button Name: %s, Input: %s, Slider Value: %f", btn.str().c_str(), inp.str().c_str(), val.num());
+		
+		try
+		{
+			int size = std::stoi(inp.str());
+			std::string bullshit(size, 'b');
+			sender->AIOHandle("AIOExample", "bullshit", bullshit);
+		}
+		catch(...)
+		{
+			ChatHandler(sender->GetSession()).SendSysMessage("ErroR");
+			return;
+		}
 	}
 
 	LuaVal InitArg(Player *sender)

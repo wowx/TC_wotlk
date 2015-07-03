@@ -968,7 +968,7 @@ class AIOScript : public ScriptObject
 
 		// Registers a handler function to call when handling
 		// handlerName of this script.
-		void AddHandler(const char *handlerName, HandlerFunc function); //!!!!!!!!!LuaVal of FuncType is always table value
+		void AddHandler(const char *handlerName, HandlerFunc function);
 
 		// Adds a client side handler to call and adds arguments
 		// to sends with it for AIO client addon initialization.
@@ -981,19 +981,21 @@ class AIOScript : public ScriptObject
 
 		// Adds a WoW addon file to the list of addons with a unique
 		// addon name to send on AIO client addon initialization.
+		// Returns true if addon was added, false if addon name is taken.
 		//
 		// It is required to call World::ForceReloadPlayerAddons()
 		// if addons are added after server is fully initialized
 		// for online players to load the added addons.
-		void AddAddon(const std::string &addonName, const std::string &fileName);
+		bool AddAddon(const std::string &addonName, const std::string &fileName);
 
 		// Adds WoW addon code to the list of addons with a unique
 		// addon name to send on AIO client addon initialization.
+		// Returns true if addon code was added, false if addon name is taken.
 		//
 		// It is required to call World::ForceReloadPlayerAddons()
 		// if addons are added after server is fully initialized
 		// for online players to load the added addons.
-		void AddAddonCode(const std::string &addonName, const std::string &code);
+		bool AddAddonCode(const std::string &addonName, const std::string &code);
 
 	private:
 		void OnHandle(Player *sender, const std::string &scriptName, const std::string &handlerName, const LuaVal &args);

@@ -15,22 +15,21 @@ CAIO is currently only implemented on TrinityCore 3.3.5 branch.
 
 ## Todo
 
-+ RemoveAddon()
-+ AddAddon command
-+ RemoveAddon command
-+ Better AIO error handling
++ Try another CRC algorithm
++ Look into the bullshit error :S
++ Better AIO 'handle error' handling
++ Config AIO init timeout
 + Config AIO buffer timeout
 + Config AIO error timeout
-+ Config AIO init timeout
-+ Config Max size cache
-+ Obfuscate
-+ Compress
++ Config AIO max cache size
++ Implement Obfuscation
++ Implement Compression
 
 ## API reference
 
 ### Creating an AIO script
 
-```
+```cpp
 class ExampleAIOScript : public AIOScript
 {
 public:
@@ -113,7 +112,7 @@ https://github.com/Rochet2/smallfolk_cpp
 
 ### AIO functions
 
-```
+```cpp
 class AIOScript
 {
 protected:
@@ -135,24 +134,27 @@ protected:
 
 	// Adds a WoW addon file to the list of addons with a unique
 	// addon name to send on AIO client addon initialization.
+	// Returns true if addon was added, false if addon name is taken.
 	//
 	// It is required to call World::ForceReloadPlayerAddons()
 	// if addons are added after server is fully initialized
 	// for online players to load the added addons.
-	void AddAddon(const std::string &addonName, const std::string &fileName);
+	bool AddAddon(const std::string &addonName, const std::string &fileName);
 
 	// Adds WoW addon code to the list of addons with a unique
 	// addon name to send on AIO client addon initialization.
+	// Returns true if addon code was added, false if addon name is taken.
 	//
 	// It is required to call World::ForceReloadPlayerAddons()
 	// if addons are added after server is fully initialized
 	// for online players to load the added addons.
-	void AddAddonCode(const std::string &addonName, const std::string &code);
+	bool AddAddonCode(const std::string &addonName, const std::string &code);
 }
 ```
 
 AIOMsg.h
-```
+
+```cpp
 class AIOMsg
 {
 public:
@@ -182,7 +184,7 @@ public:
 
 Player.h
 
-```
+```cpp
 //Returns whether AIO client has been initialized
 bool AIOInitialized() const { return m_aioinitialized; }
 
@@ -219,12 +221,12 @@ void Player::ForceResetAddons();
 
 World.h
 
-```
+```cpp
 // AIO prefix configured in worldserver.conf
-std::string World::GetAIOPrefix() const { return m_aioprefix; }
+std::string World::GetAIOPrefix() const;
 
 // AIO client LUA files path configured in worldserver.conf
-std::string World::GetAIOClientScriptPath() const { return m_aioclientpath; }
+std::string World::GetAIOClientScriptPath() const;
 
 // Forces a reload on all player addons
 // Syncs player addons with addons in addon list
@@ -239,7 +241,7 @@ void World::ForceResetPlayerAddons();
 void World::AIOMessageAll(AIOMsg &msg);
 
 // Sends a simple string message to all players
-//
+
 // AIO can only understand smallfolk LuaVal::dumps() format
 // Handler functions are called by creating a table as below
 // {
@@ -251,24 +253,48 @@ void World::SendAllSimpleAIOMessage(const std::string &message);
 
 // Reloads client side addon files in the list of addons
 // and force reloads all player addons
-void World::ReloadAddons();
+// Returns true if successful, false if an error occurred
+bool World::ReloadAddons();
 
 // Adds a WoW addon file to the list of addons with a unique
 // addon name to send on AIO client addon initialization.
-//
-// It is required to call World::ForceReloadPlayerAddons()
-// if addons are added after server is fully initialized
-// for online players to load the added addons.// Adds addon to the list of 
-void World::AddAddon(const std::string &name, const std::string &fileName, bool formatPath);
-
-// Adds WoW addon code to the list of addons with a unique
-// addon name to send on AIO client addon initialization.
+// Returns true if addon was added, false if addon name is already taken
 //
 // It is required to call World::ForceReloadPlayerAddons()
 // if addons are added after server is fully initialized
 // for online players to load the added addons.
-void World::AddAddonCode(const std::string &name, const std::string &code, const std::string &file = "");
+bool World::AddAddon(const std::string &name, const std::string &fileName);
+
+// Adds WoW addon code to the list of addons with a unique
+// addon name to send on AIO client addon initialization.
+// Returns true if addon code was added, false if addon name is already taken
+//
+// It is required to call World::ForceReloadPlayerAddons()
+// if addons are added after server is fully initialized
+// for online players to load the added addons.
+bool World::AddAddonCode(const std::string &addonName, const std::string &code, const std::string &file = "");
+
+// Removes an addon from addon list
+// Returns true if an addon was removed, false if addon not found
+//
+// It is required to call World::ForceReloadPlayerAddons()
+// if addons are removed after server is fully initialized
+// for online players to load the added addons.
+bool World::RemoveAddon(const std::string &addonName);
 ```
+
+## AIO game commands
+
++ caio version
++ caio addaddon $addonName "$addonFile"
++ caio removeaddon $addonName
++ caio send $playerName "$message"
++ caio sendall "$message"
++ caio forcereload $playerName
++ caio forcereset $playerName
++ caio forcereloadall
++ caio forceresetall
++ caio reloadaddons
 
 ## Reporting issues and submitting fixes
 
