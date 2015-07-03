@@ -15,8 +15,6 @@ CAIO is currently only implemented on TrinityCore 3.3.5 branch.
 
 ## Todo
 
-+ Try another CRC algorithm
-+ Look into the bullshit error :S
 + Better AIO 'handle error' handling
 + Config AIO init timeout
 + Config AIO buffer timeout
