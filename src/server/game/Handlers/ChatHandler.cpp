@@ -310,7 +310,6 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
 					//Its a long message
 					if((msg.size() - delimPos - 1) >= 6)
 					{
-						AddonMessageBufferMap::iterator messagePartsItr;
 						uint32 parts = (msg[delimPos + 3] - 1) * 254 + msg[delimPos + 4] - 1;
 						if(parts < 2)
 						{
@@ -326,8 +325,21 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
 
 						uint32 partId = (msg[delimPos + 5] - 1) * 254 + msg[delimPos + 6] - 1;
 
-						_addonMessageBuffer[messageId];
-						messagePartsItr = _addonMessageBuffer.find(messageId);
+						//Check if message exists
+						AddonMessageBufferMap::iterator messagePartsItr = _addonMessageBuffer.find(messageId);
+						if(messagePartsItr == _addonMessageBuffer.end())
+						{
+							messagePartsItr = _addonMessageBuffer.insert(std::make_pair(messageId, LongMessageBufferInfo())).first;
+						}
+						else
+						{
+							//If message already exist and has different number of parts remove it
+							if(parts != messagePartsItr->second.Parts)
+							{
+								messagePartsItr->second = LongMessageBufferInfo();
+							}
+						}
+
 						messagePartsItr->second.Parts = parts;
 						messagePartsItr->second.Map[partId] = msg.substr(delimPos + 7);
 

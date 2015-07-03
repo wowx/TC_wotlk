@@ -1220,7 +1220,7 @@ class Player : public Unit, public GridObject<Player>
         void Whisper(std::string const& text, Language language, Player* receiver, bool = false) override;
 
 		//Returns whether AIO client has been initialized
-		bool AIOInitialized() const { return m_aioinitialized; }
+		bool AIOInitialized() const { return m_aioInitialized; }
 
 		// Sends an AIO message to the player
 		// See: class AIOMsg
@@ -1250,8 +1250,8 @@ class Player : public Unit, public GridObject<Player>
 		// Player addons and addon data is deleted and downloaded again
 		void ForceResetAddons();
 
-		bool isAIOInitOnCooldown() const { return m_aioinit_cd; }
-		void setAIOIntOnCooldown(bool cd) { m_aioinit_cd = cd; m_aioinit_timer = 0; }
+		bool isAIOInitOnCooldown() const { return m_aioInitCd; }
+		void setAIOIntOnCooldown(bool cd) { m_aioInitCd = cd; m_aioInitTimer = 0; }
 
         /*********************************************************/
         /***                    STORAGE SYSTEM                 ***/
@@ -2680,9 +2680,10 @@ class Player : public Unit, public GridObject<Player>
 
         uint32 _activeCheats;
 
-		bool m_aioinitialized;
-		bool m_aioinit_cd;
-		uint32 m_aioinit_timer;
+		bool m_aioInitialized;
+		bool m_aioInitCd;
+		uint32 m_aioInitTimer;
+		uint16 m_messageIdIndex;
 
 		friend class AIOHandlers;
 };

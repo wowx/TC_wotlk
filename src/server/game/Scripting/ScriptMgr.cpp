@@ -1812,7 +1812,7 @@ void AIOHandlers::HandleInit(Player *sender, const LuaVal &args)
 	argsToSend.set(1, AIOInitBlock);
 	sender->SendSimpleAIOMessage(argsToSend.dumps());
 
-	sender->m_aioinitialized = true;
+	sender->m_aioInitialized = true;
 }
 
 void AIOHandlers::HandleError(Player *sender, const LuaVal &args)

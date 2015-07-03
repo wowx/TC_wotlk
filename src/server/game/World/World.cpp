@@ -66,6 +66,7 @@
 #include "WorldSession.h"
 
 #include <fstream>
+#include <boost/crc.hpp>
 #include "smallfolk_cpp/smallfolk.h"
 #include "AIOMsg.h"
 
@@ -3345,12 +3346,9 @@ bool World::AddAddonCode(const std::string &name, const std::string &code, const
 	}
 
 	//CRC
-	uint32 crc = 0;
-	for(size_t i = 0; i < code.size(); ++i)
-	{
-		crc = crc << 1;
-		crc += code[i];
-	}
+	boost::crc_32_type crc_result;
+	crc_result.process_bytes(code.data(), code.length());
+	uint32 crc = crc_result.checksum();
 
 	m_AddonList.push_back(AIOAddonCode(name, compressPrefix + code, crc, file));
 	if(file.empty())
