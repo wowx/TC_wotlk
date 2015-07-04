@@ -3365,7 +3365,8 @@ bool World::AddAddonCode(const std::string &name, const std::string &code, const
 bool World::RemoveAddon(const std::string &addonName)
 {
 	for(AddonCodeListType::iterator itr = m_AddonList.begin();
-		itr != m_AddonList.end();)
+		itr != m_AddonList.end();
+		++itr)
 	{
 		if(itr->name == addonName)
 		{
