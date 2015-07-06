@@ -20614,7 +20614,7 @@ void Player::SendSimpleAIOMessage(const std::string &message)
 		data << uint8(0);
 		GetSession()->SendPacket(&data);
 
-		cursor += fullmsg.size();
+		cursor += 2600;
 	}
 }
 
