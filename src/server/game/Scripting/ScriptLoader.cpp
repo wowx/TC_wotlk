@@ -708,7 +708,7 @@ void AddScripts()
     AddBattlegroundScripts();
     AddOutdoorPvPScripts();
     AddCustomScripts();
-	AddAIOScripts();
+    AddAIOScripts();
 #endif
 }
 
@@ -772,7 +772,7 @@ void AddCommandScripts()
     AddSC_ticket_commandscript();
     AddSC_titles_commandscript();
     AddSC_wp_commandscript();
-	AddSC_caio_commandscript();
+    AddSC_caio_commandscript();
 }
 
 void AddWorldScripts()
@@ -1436,6 +1436,6 @@ void AddSC_ExampleWindow();
 
 void AddAIOScripts()
 {
-	/* This is where AIO scripts should be added. */
-	AddSC_ExampleWindow();
+    /* This is where AIO scripts should be added. */
+    AddSC_ExampleWindow();
 }

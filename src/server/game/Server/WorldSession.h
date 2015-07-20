@@ -1065,20 +1065,20 @@ class WorldSession
         WorldSession(WorldSession const& right) = delete;
         WorldSession& operator=(WorldSession const& right) = delete;
 
-		//AIO
-		typedef std::map<uint32, std::string> AddonPartStringMap;
-		struct LongMessageBufferInfo
-		{
-			uint32 Parts;
-			uint32 Timer;
-			AddonPartStringMap Map;
+        // AIO
+        typedef std::map<uint32, std::string> AddonPartStringMap;
+        struct LongMessageBufferInfo
+        {
+            uint32 Parts;
+            uint32 Timer;
+            AddonPartStringMap Map;
 
-			LongMessageBufferInfo()
-				: Parts(0), Timer(0)
-			{ }
-		};
-		typedef std::map<uint16, LongMessageBufferInfo> AddonMessageBufferMap;
-		AddonMessageBufferMap _addonMessageBuffer;
+            LongMessageBufferInfo() : Parts(0), Timer(0)
+            {
+            }
+        };
+        typedef std::map<uint16, LongMessageBufferInfo> AddonMessageBufferMap;
+        AddonMessageBufferMap _addonMessageBuffer;
 };
 #endif
 /// @}

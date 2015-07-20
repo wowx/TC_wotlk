@@ -167,8 +167,8 @@ enum WorldBoolConfigs
     CONFIG_ALLOW_TRACK_BOTH_RESOURCES,
     CONFIG_CALCULATE_CREATURE_ZONE_AREA_DATA,
     CONFIG_CALCULATE_GAMEOBJECT_ZONE_AREA_DATA,
-	CONFIG_AIO_OBFUSCATE,
-	CONFIG_AIO_COMPRESS,
+    CONFIG_AIO_OBFUSCATE,
+    CONFIG_AIO_COMPRESS,
     BOOL_CONFIG_VALUE_COUNT
 };
 
@@ -355,7 +355,7 @@ enum WorldIntConfigs
     CONFIG_CHARTER_COST_ARENA_5v5,
     CONFIG_NO_GRAY_AGGRO_ABOVE,
     CONFIG_NO_GRAY_AGGRO_BELOW,
-	CONFIG_AIO_MAXPARTS,
+    CONFIG_AIO_MAXPARTS,
     INT_CONFIG_VALUE_COUNT
 };
 
@@ -770,71 +770,80 @@ class World
 
         void ReloadRBAC();
 
-		// AIO prefix configured in worldserver.conf
-		std::string GetAIOPrefix() const { return m_aioprefix; }
+        // AIO prefix configured in worldserver.conf
+        std::string GetAIOPrefix() const
+        {
+            return m_aioprefix;
+        }
 
-		// AIO client LUA files path configured in worldserver.conf
-		std::string GetAIOClientScriptPath() const { return m_aioclientpath; }
+        // AIO client LUA files path configured in worldserver.conf
+        std::string GetAIOClientScriptPath() const
+        {
+            return m_aioclientpath;
+        }
 
-		// Forces a reload on all player addons
-		// Syncs player addons with addons in addon list
-		void ForceReloadPlayerAddons();
+        // Forces a reload on all player addons
+        // Syncs player addons with addons in addon list
+        void ForceReloadPlayerAddons();
 
-		// Forces a reset on all player addons
-		// Player addons and addon data is deleted and downloaded again
-		void ForceResetPlayerAddons();
+        // Forces a reset on all player addons
+        // Player addons and addon data is deleted and downloaded again
+        void ForceResetPlayerAddons();
 
-		// Sends an AIO message to all players
-		// See: class AIOMsg
-		void AIOMessageAll(AIOMsg &msg);
+        // Sends an AIO message to all players
+        // See: class AIOMsg
+        void AIOMessageAll(AIOMsg &msg);
 
-		// Sends a simple string message to all players
+        // Sends a simple string message to all players
 
-		// AIO can only understand smallfolk LuaVal::dumps() format
-		// Handler functions are called by creating a table as below
-		// {
-		//     {n, ScriptName, HandlerName(optional), Arg1..N(optional) },
-		//     {n, AnotherScriptName, AnotherHandlerName(optional), Arg1..N(optional) }
-		// }
-		// Where n is number of arguments including handler name as a argument
-		void SendAllSimpleAIOMessage(const std::string &message);
+        // AIO can only understand smallfolk LuaVal::dumps() format
+        // Handler functions are called by creating a table as below
+        // {
+        //     {n, ScriptName, HandlerName(optional), Arg1..N(optional) },
+        //     {n, AnotherScriptName, AnotherHandlerName(optional), Arg1..N(optional) }
+        // }
+        // Where n is number of arguments including handler name as a argument
+        void SendAllSimpleAIOMessage(const std::string &message);
 
-		// Reloads client side addon files in the list of addons
-		// and force reloads all player addons
-		// Returns true if successful, false if an error occurred
-		bool ReloadAddons();
-		
-		// Adds a WoW addon file to the list of addons with a unique
-		// addon name to send on AIO client addon initialization.
-		// Returns true if addon was added, false if addon name is already taken
-		//
-		// It is required to call World::ForceReloadPlayerAddons()
-		// if addons are added after server is fully initialized
-		// for online players to load the added addons.
-		bool AddAddon(const std::string &name, const std::string &fileName) { return _AddAddon(name, fileName, true); }
+        // Reloads client side addon files in the list of addons
+        // and force reloads all player addons
+        // Returns true if successful, false if an error occurred
+        bool ReloadAddons();
 
-		// Adds WoW addon code to the list of addons with a unique
-		// addon name to send on AIO client addon initialization.
-		// Returns true if addon code was added, false if addon name is already taken
-		//
-		// It is required to call World::ForceReloadPlayerAddons()
-		// if addons are added after server is fully initialized
-		// for online players to load the added addons.
-		bool AddAddonCode(const std::string &addonName, const std::string &code, const std::string &file = "");
+        // Adds a WoW addon file to the list of addons with a unique
+        // addon name to send on AIO client addon initialization.
+        // Returns true if addon was added, false if addon name is already taken
+        //
+        // It is required to call World::ForceReloadPlayerAddons()
+        // if addons are added after server is fully initialized
+        // for online players to load the added addons.
+        bool AddAddon(const std::string &name, const std::string &fileName)
+        {
+            return _AddAddon(name, fileName, true);
+        }
 
-		// Removes an addon from addon list
-		// Returns true if an addon was removed, false if addon not found
-		//
-		// It is required to call World::ForceReloadPlayerAddons()
-		// if addons are removed after server is fully initialized
-		// for online players to load the added addons.
-		bool RemoveAddon(const std::string &addonName);
+        // Adds WoW addon code to the list of addons with a unique
+        // addon name to send on AIO client addon initialization.
+        // Returns true if addon code was added, false if addon name is already taken
+        //
+        // It is required to call World::ForceReloadPlayerAddons()
+        // if addons are added after server is fully initialized
+        // for online players to load the added addons.
+        bool AddAddonCode(const std::string &addonName, const std::string &code, const std::string &file = "");
 
-		// For internal use only
-		size_t PrepareClientAddons(const LuaVal &clientData, LuaVal &addonsTable, LuaVal &cacheTable) const;
+        // Removes an addon from addon list
+        // Returns true if an addon was removed, false if addon not found
+        //
+        // It is required to call World::ForceReloadPlayerAddons()
+        // if addons are removed after server is fully initialized
+        // for online players to load the added addons.
+        bool RemoveAddon(const std::string &addonName);
+
+        // For internal use only
+        size_t PrepareClientAddons(const LuaVal &clientData, LuaVal &addonsTable, LuaVal &cacheTable) const;
 
     protected:
-		bool _AddAddon(const std::string &name, const std::string &fileName, bool formatPath);
+        bool _AddAddon(const std::string &name, const std::string &fileName, bool formatPath);
 
         void _UpdateGameTime();
         // callback for UpdateRealmCharacters
@@ -938,24 +947,25 @@ class World
         void ProcessQueryCallbacks();
         std::deque<std::future<PreparedQueryResult>> m_realmCharCallbacks;
 
-		struct AIOAddonCode
-		{
-			std::string name;
-			std::string code;
-			std::string file;
-			uint32 crc;
+        struct AIOAddonCode
+        {
+            std::string name;
+            std::string code;
+            std::string file;
+            uint32 crc;
 
-			AIOAddonCode(const std::string &name, const std::string &code, uint32 crc, const std::string &file)
-				: name(name), code(code), crc(crc), file(file)
-			{ }
-		};
-		typedef std::list<AIOAddonCode> AddonCodeListType;
-		AddonCodeListType m_AddonList;
-		std::string m_aioprefix;
-		std::string m_aioclientpath;
+            AIOAddonCode(const std::string &name, const std::string &code, uint32 crc, const std::string &file)
+                : name(name), code(code), crc(crc), file(file)
+            {
+            }
+        };
+        typedef std::list<AIOAddonCode> AddonCodeListType;
+        AddonCodeListType m_AddonList;
+        std::string m_aioprefix;
+        std::string m_aioclientpath;
 
-		friend class AIOScript;
-		friend class caio_commandscript;
+        friend class AIOScript;
+        friend class caio_commandscript;
 };
 
 extern uint32 realmID;

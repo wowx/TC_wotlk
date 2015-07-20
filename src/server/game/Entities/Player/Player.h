@@ -1219,39 +1219,48 @@ class Player : public Unit, public GridObject<Player>
         /// Handles whispers from Addons and players based on sender, receiver's guid and language.
         void Whisper(std::string const& text, Language language, Player* receiver, bool = false) override;
 
-		//Returns whether AIO client has been initialized
-		bool AIOInitialized() const { return m_aioInitialized; }
+        // aioInitializedReturns whether AIO client has been initialized
+        bool AIOInitialized() const
+        {
+            return m_aioInitialized;
+        }
 
-		// Sends an AIO message to the player
-		// See: class AIOMsg
-		void AIOMessage(AIOMsg &msg);
+        // Sends an AIO message to the player
+        // See: class AIOMsg
+        void AIOMessage(AIOMsg &msg);
 
-		// Triggers an AIO script handler on the client
-		// To trigger multiple handlers in one message or add more arguments
-		// use Player::AIOMessage
-		void AIOHandle(const std::string &scriptName, const std::string &handlerName,
-			const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
-			const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
+        // Triggers an AIO script handler on the client
+        // To trigger multiple handlers in one message or add more arguments
+        // use Player::AIOMessage
+        void AIOHandle(const std::string &scriptName, const std::string &handlerName,
+            const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
+            const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
 
-		// AIO can only understand smallfolk LuaVal::dumps() format
-		// Handler functions are called by creating a table as below
-		// {
-		//     {n, ScriptName, HandlerName(optional), Arg1..N(optional) },
-		//     {n, AnotherScriptName, AnotherHandlerName(optional), Arg1..N(optional) }
-		// }
-		// Where n is number of arguments including handler name as a argument
-		void SendSimpleAIOMessage(const std::string &message);
+        // AIO can only understand smallfolk LuaVal::dumps() format
+        // Handler functions are called by creating a table as below
+        // {
+        //     {n, ScriptName, HandlerName(optional), Arg1..N(optional) },
+        //     {n, AnotherScriptName, AnotherHandlerName(optional), Arg1..N(optional) }
+        // }
+        // Where n is number of arguments including handler name as a argument
+        void SendSimpleAIOMessage(const std::string &message);
 
-		// Forces a reload on the player addons
-		// Syncs player addons with addons in addon list
-		void ForceReloadAddons();
+        // Forces a reload on the player addons
+        // Syncs player addons with addons in addon list
+        void ForceReloadAddons();
 
-		// Forces a reset on the player addons
-		// Player addons and addon data is deleted and downloaded again
-		void ForceResetAddons();
+        // Forces a reset on the player addons
+        // Player addons and addon data is deleted and downloaded again
+        void ForceResetAddons();
 
-		bool isAIOInitOnCooldown() const { return m_aioInitCd; }
-		void setAIOIntOnCooldown(bool cd) { m_aioInitCd = cd; m_aioInitTimer = 0; }
+        bool isAIOInitOnCooldown() const
+        {
+            return m_aioInitCd;
+        }
+        void setAIOIntOnCooldown(bool cd)
+        {
+            m_aioInitCd = cd; m_aioInitTimer = 0;
+        }
 
         /*********************************************************/
         /***                    STORAGE SYSTEM                 ***/
@@ -2680,12 +2689,12 @@ class Player : public Unit, public GridObject<Player>
 
         uint32 _activeCheats;
 
-		bool m_aioInitialized;
-		bool m_aioInitCd;
-		uint32 m_aioInitTimer;
-		uint16 m_messageIdIndex;
+        bool m_aioInitialized;
+        bool m_aioInitCd;
+        uint32 m_aioInitTimer;
+        uint16 m_messageIdIndex;
 
-		friend class AIOHandlers;
+        friend class AIOHandlers;
 };
 
 void AddItemsSetItem(Player* player, Item* item);

@@ -11,187 +11,189 @@ EndScriptData */
 
 class caio_commandscript : public CommandScript
 {
-	public:
-		caio_commandscript() : CommandScript("caio_commandscript") { }
+public:
+    caio_commandscript() : CommandScript("caio_commandscript")
+    {
+    }
 
-		ChatCommand* GetCommands() const
-		{
-			static ChatCommand caioCommandTable[] =
-			{
-				{ "version", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleVersionCommand, "", NULL },
-				{ "send", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleSendCommand, "", NULL },
-				{ "forcereload", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleReloadCommand, "", NULL },
-				{ "forcereset", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleResetCommand, "", NULL },
-				{ "sendall", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleSendAllCommand, "", NULL },
-				{ "forcereloadall", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleReloadAllCommand, "", NULL },
-				{ "forceresetall", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleResetAllCommand, "", NULL },
-				{ "reloadaddons", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleReloadAddonsCommand, "", NULL },
-				{ "addaddon", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleAddAddonCommand, "", NULL },
-				{ "removeaddon", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleRemoveAddonCommand, "", NULL },
-				{ NULL, 0, false, NULL, "", NULL }
-			};
-			static ChatCommand commandTable[] =
-			{
-				{ "caio", SEC_ADMINISTRATOR, true, 0, "", caioCommandTable },
-				{ NULL, 0, false, NULL, "", NULL }
-			};
-			return commandTable;
-		}
-		
-		static bool HandleVersionCommand(ChatHandler* handler, char const* args)
-		{
-			handler->SendSysMessage("AIO version " AIO_VERSION_STRING ".");
-			return true;
-		}
+    ChatCommand* GetCommands() const
+    {
+        static ChatCommand caioCommandTable[] =
+        {
+            {"version", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleVersionCommand, "", NULL},
+            {"send", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleSendCommand, "", NULL},
+            {"forcereload", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleReloadCommand, "", NULL},
+            {"forcereset", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleResetCommand, "", NULL},
+            {"sendall", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleSendAllCommand, "", NULL},
+            {"forcereloadall", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleReloadAllCommand, "", NULL},
+            {"forceresetall", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleResetAllCommand, "", NULL},
+            {"reloadaddons", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleReloadAddonsCommand, "", NULL},
+            {"addaddon", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleAddAddonCommand, "", NULL},
+            {"removeaddon", rbac::RBAC_PERM_COMMAND_CAIO, true, &HandleRemoveAddonCommand, "", NULL},
+            {NULL, 0, false, NULL, "", NULL}
+        };
+        static ChatCommand commandTable[] =
+        {
+            {"caio", SEC_ADMINISTRATOR, true, 0, "", caioCommandTable},
+            {NULL, 0, false, NULL, "", NULL}
+        };
+        return commandTable;
+    }
 
-		static bool HandleSendCommand(ChatHandler* handler, char const* args)
-		{
-			// format: name "message text"
-			Player *target = 0;
-			if(!handler->extractPlayerTarget((char*)args, &target, 0, 0))
-				return false;
+    static bool HandleVersionCommand(ChatHandler* handler, char const* args)
+    {
+        handler->SendSysMessage("AIO version " AIO_VERSION_STRING ".");
+        return true;
+    }
 
-			char* tailStr = strtok(NULL, " ");
-			if(!tailStr)
-				return false;
+    static bool HandleSendCommand(ChatHandler* handler, char const* args)
+    {
+        // format: name "message text"
+        Player *target = 0;
+        if (!handler->extractPlayerTarget((char*)args, &target, 0, 0))
+            return false;
 
-			char const* msg = handler->extractQuotedArg(tailStr);
-			if(!msg)
-				return false;
+        char* tailStr = strtok(NULL, " ");
+        if (!tailStr)
+            return false;
 
-			target->SendSimpleAIOMessage(msg);
-			handler->SendSysMessage("Message sent.");
-			return true;
-		};
+        char const* msg = handler->extractQuotedArg(tailStr);
+        if (!msg)
+            return false;
 
-		static bool HandleReloadCommand(ChatHandler* handler, char const* args)
-		{
-			Player *target = 0;
-			if(!handler->extractPlayerTarget((char*)args, &target, 0, 0))
-				return false;
+        target->SendSimpleAIOMessage(msg);
+        handler->SendSysMessage("Message sent.");
+        return true;
+    };
 
-			target->ForceReloadAddons();
-			handler->SendSysMessage("Reload message sent.");
-			return true;
-		};
+    static bool HandleReloadCommand(ChatHandler* handler, char const* args)
+    {
+        Player *target = 0;
+        if (!handler->extractPlayerTarget((char*)args, &target, 0, 0))
+            return false;
 
-		static bool HandleResetCommand(ChatHandler* handler, char const* args)
-		{
-			Player *target = 0;
-			if(!handler->extractPlayerTarget((char*)args, &target, 0, 0))
-				return false;
+        target->ForceReloadAddons();
+        handler->SendSysMessage("Reload message sent.");
+        return true;
+    };
 
-			target->ForceResetAddons();
-			handler->SendSysMessage("Reset message sent.");
-			return true;
-		};
+    static bool HandleResetCommand(ChatHandler* handler, char const* args)
+    {
+        Player *target = 0;
+        if (!handler->extractPlayerTarget((char*)args, &target, 0, 0))
+            return false;
 
-		static bool HandleSendAllCommand(ChatHandler* handler, char const* args)
-		{
-			char* tailStr = strtok((char*)args, " ");
-			if(!tailStr)
-				return false;
+        target->ForceResetAddons();
+        handler->SendSysMessage("Reset message sent.");
+        return true;
+    };
 
-			char const* msg = handler->extractQuotedArg(tailStr);
-			if(!msg)
-				return false;
+    static bool HandleSendAllCommand(ChatHandler* handler, char const* args)
+    {
+        char* tailStr = strtok((char*)args, " ");
+        if (!tailStr)
+            return false;
 
-			sWorld->SendAllSimpleAIOMessage(msg);
-			handler->SendSysMessage("Message sent.");
-			return true;
-		};
+        char const* msg = handler->extractQuotedArg(tailStr);
+        if (!msg)
+            return false;
 
-		static bool HandleReloadAllCommand(ChatHandler* handler, char const* args)
-		{
-			Player *target = 0;
-			if(!handler->extractPlayerTarget((char*)args, &target, 0, 0))
-				return false;
+        sWorld->SendAllSimpleAIOMessage(msg);
+        handler->SendSysMessage("Message sent.");
+        return true;
+    };
 
-			sWorld->ForceReloadPlayerAddons();
-			handler->SendSysMessage("Reload all message sent.");
-			return true;
-		};
+    static bool HandleReloadAllCommand(ChatHandler* handler, char const* args)
+    {
+        Player *target = 0;
+        if (!handler->extractPlayerTarget((char*)args, &target, 0, 0))
+            return false;
 
-		static bool HandleResetAllCommand(ChatHandler* handler, char const* args)
-		{
-			Player *target = 0;
-			if(!handler->extractPlayerTarget((char*)args, &target, 0, 0))
-				return false;
+        sWorld->ForceReloadPlayerAddons();
+        handler->SendSysMessage("Reload all message sent.");
+        return true;
+    };
 
-			sWorld->ForceResetPlayerAddons();
-			handler->SendSysMessage("Reset all message sent.");
-			return true;
-		};
+    static bool HandleResetAllCommand(ChatHandler* handler, char const* args)
+    {
+        Player *target = 0;
+        if (!handler->extractPlayerTarget((char*)args, &target, 0, 0))
+            return false;
 
-		static bool HandleReloadAddonsCommand(ChatHandler* handler, char const* args)
-		{
-			bool success = sWorld->ReloadAddons();
+        sWorld->ForceResetPlayerAddons();
+        handler->SendSysMessage("Reset all message sent.");
+        return true;
+    };
 
-			if(success)
-			{
-				sWorld->ForceReloadPlayerAddons();
-			}
-			else
-			{
-				handler->SendSysMessage("An error occurred during reload.");
-			}
-			return true;
-		}
+    static bool HandleReloadAddonsCommand(ChatHandler* handler, char const* args)
+    {
+        bool success = sWorld->ReloadAddons();
 
-		static bool HandleAddAddonCommand(ChatHandler* handler, char const* args)
-		{
-			if(!*args)
-			{
-				return false;
-			}
+        if (success)
+        {
+            sWorld->ForceReloadPlayerAddons();
+        }
+        else
+        {
+            handler->SendSysMessage("An error occurred during reload.");
+        }
+        return true;
+    }
 
-			char *addonName = strtok((char*)args, " ");
-			char *tailStr = strtok(NULL, " ");
+    static bool HandleAddAddonCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+        {
+            return false;
+        }
 
-			if(!tailStr)
-			{
-				return false;
-			}
-			char *addonFile = handler->extractQuotedArg(tailStr);
+        char *addonName = strtok((char*)args, " ");
+        char *tailStr = strtok(NULL, " ");
 
-			if(!addonFile || !addonName)
-			{
-				return false;
-			}
+        if (!tailStr)
+        {
+            return false;
+        }
+        char *addonFile = handler->extractQuotedArg(tailStr);
 
-			bool added = sWorld->AddAddon(addonName, addonFile);
+        if (!addonFile || !addonName)
+        {
+            return false;
+        }
 
-			if(added)
-			{
-				sWorld->ForceReloadPlayerAddons();
-			}
-			else
-			{
-				handler->PSendSysMessage("Addon with name '%s' already exists or file not found.", addonName);
-			}
-			return true;
-		}
+        bool added = sWorld->AddAddon(addonName, addonFile);
 
-		static bool HandleRemoveAddonCommand(ChatHandler* handler, char const* args)
-		{
-			char* tailStr = strtok((char*)args, " ");
-			if(!tailStr)
-				return false;
+        if (added)
+        {
+            sWorld->ForceReloadPlayerAddons();
+        }
+        else
+        {
+            handler->PSendSysMessage("Addon with name '%s' already exists or file not found.", addonName);
+        }
+        return true;
+    }
 
-			bool removed = sWorld->RemoveAddon(tailStr);
-			if(removed)
-			{
-				sWorld->ForceReloadPlayerAddons();
-			}
-			else
-			{
-				handler->PSendSysMessage("Addon with name '%s' not found.", tailStr);
-			}
-			return true;
-		}
+    static bool HandleRemoveAddonCommand(ChatHandler* handler, char const* args)
+    {
+        char* tailStr = strtok((char*)args, " ");
+        if (!tailStr)
+            return false;
+
+        bool removed = sWorld->RemoveAddon(tailStr);
+        if (removed)
+        {
+            sWorld->ForceReloadPlayerAddons();
+        }
+        else
+        {
+            handler->PSendSysMessage("Addon with name '%s' not found.", tailStr);
+        }
+        return true;
+    }
 };
 
 void AddSC_caio_commandscript()
 {
-	new caio_commandscript();
+    new caio_commandscript();
 }

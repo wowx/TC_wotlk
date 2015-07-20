@@ -695,9 +695,9 @@ enum RBACPermissions
     RBAC_PERM_COMMAND_PVPSTATS                               = 797,
     RBAC_PERM_COMMAND_MODIFY_XP                              = 798,
 
-	RBAC_PERM_COMMAND_CAIO = 5000,
+    // custom permissions 1000+
 
-    // custom permissions 1000+ except for 5000
+    RBAC_PERM_COMMAND_CAIO                                   = 5000,
     RBAC_PERM_MAX
 };
 
