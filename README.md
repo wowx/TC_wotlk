@@ -1,312 +1,85 @@
+# ![logo](http://www.trinitycore.org/f/public/style_images/1_trinitycore.png) TrinityCore
+
+[![Issue Stats](http://www.issuestats.com/github/TrinityCore/TrinityCore/badge/issue)](http://www.issuestats.com/github/TrinityCore/TrinityCore) [![Issue Stats](http://www.issuestats.com/github/TrinityCore/TrinityCore/badge/pr)](http://www.issuestats.com/github/TrinityCore/TrinityCore) [![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=1310)](https://www.bountysource.com/trackers/1310-trinity-core?utm_source=1310&utm_medium=shield&utm_campaign=TRACKER_BADGE)
+
+## Build Status
+
+6.x | 3.3.5
+:------------: | :------------:
+[![6.x Build Status](https://travis-ci.org/TrinityCore/TrinityCore.svg?branch=6.x)](https://travis-ci.org/TrinityCore/TrinityCore) | [![3.3.5 Build Status](https://travis-ci.org/TrinityCore/TrinityCore.svg?branch=3.3.5)](https://travis-ci.org/TrinityCore/TrinityCore)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/435/badge.svg)](https://scan.coverity.com/projects/435) | [![Coverity Scan Build Status](https://scan.coverity.com/projects/4656/badge.svg)](https://scan.coverity.com/projects/4656)
+
 ## Introduction
 
-CAIO is a server-client communication system for WoW AddOns. It is an extension of [AIO](https://github.com/Rochet2/AIO) to support C++ server side handling.
-CAIO is designed for sending lua addons and data to player from server and data from player to server.
-CAIO is currently only implemented on TrinityCore 3.3.5 branch.
+TrinityCore is a *MMORPG* Framework based mostly in C++.
+
+It is derived from *MaNGOS*, the *Massive Network Game Object Server*, and is
+based on the code of that project with extensive changes over time to optimize,
+improve and cleanup the codebase at the same time as improving the in-game
+mechanics and functionality.
+
+It is completely open source; community involvement is highly encouraged.
+
+If you wish to contribute ideas or code please visit our site linked below or
+make pull requests to our [Github repository](https://github.com/TrinityCore/TrinityCore).
+
+For further information on the TrinityCore project, please visit our project
+website at [TrinityCore.org](http://www.trinitycore.org).
+
+## Requirements
+
++ Platform: Linux, Windows or Mac
++ Processor with SSE2 support
++ Boost ≥ 1.49
++ MySQL ≥ 5.1.0
++ CMake ≥ 2.8.11.2 / 2.8.9 (Windows / Linux)
++ OpenSSL ≥ 1.0.0
++ GCC ≥ 4.7.2 (Linux only)
++ MS Visual Studio ≥ 12 (2013) (Windows only)
 
 
 ## Install
 
-+ Clone this repository or merge with your TrinityCore 3.3.5 branch
-+ Copy `AIO_Client` folder from [AIO](https://github.com/Rochet2/AIO) repository to `WoW_Installation_Dir/Interface/AddOns`
-+ [Install AIO scripts](#api-reference)
-+ Build/Install TrinityCore
-+ Copy your client side addons to `TrinityCore_Installation_Dir/lua_client_scripts`
+Detailed installation guides are available in the [wiki](http://collab.kpsn.org/display/tc/Installation+Guide) for
+Windows, Linux and Mac OSX.
 
-## Todo
 
-+ Better AIO 'handle error' handling
-+ Config AIO init timeout
-+ Config AIO buffer timeout
-+ Config AIO error timeout
-+ Config AIO max cache size
-+ Implement Obfuscation
-+ Implement Compression
+## Reporting issues
 
-## API reference
+Issues can be reported via the [Github issue tracker](https://github.com/TrinityCore/TrinityCore/issues?labels=Branch-3.3.5a).
 
-### Creating an AIO script
+Please take the time to review existing issues before submitting your own to
+prevent duplicates.
 
-```cpp
-class ExampleAIOScript : public AIOScript
-{
-public:
-	ExampleAIOScript()
-		: AIOScript("ExampleScriptName")
-	{
-		// Loads addon files to addons list and sends them on AIO client initialization
-		// Looks for the file in path config AIO.ClientScriptPath
-		AddAddon("ExampleAddon", "example_addon.lua");
-		AddAddon("AnotherAddon", "extras/another_addon.lua");
+In addition, thoroughly read through the [issue tracker guide](http://www.trinitycore.org/f/topic/37-the-trinitycore-issuetracker-and-you/) to ensure
+your report contains the required information. Incorrect or poorly formed
+reports are wasteful and are subject to deletion.
 
-		// Handler function signature: void HandlerFunction(Player *sender, const LuaVal &args)
-		AddHandler("Print", std::bind(&ExampleAIOScript::HandlePrint, this, std::placeholders::_1, std::placeholders::_2));
-		AddHandler("Save", std::bind(&ExampleAIOScript::HandleSave, this, std::placeholders::_1, std::placeholders::_2));
 
-		// Initialization handler and arguments
-		AddInitArgs("ExampleScriptName", "Init", std::bind(&ExampleAIOScript::InitArg, this, std::placeholders::_1), std::bind(&ExampleAIOScript::InitArg, this, std::placeholders::_1));
-		//Adds additional argument to send to handler
-		AddInitArgs("ExampleScriptName", "Init", std::bind(&ExampleAIOScript::InitArg2, this, std::placeholders::_1));
-		AddInitArgs("AnotherScript", "InitB"); //Arguments are not required
-	}
+## Submitting fixes
 
-	void HandlePrint(Player *sender, const LuaVal &args)
-	{
-	    //LuaVal args in a handler function is always a table
-		//Handler arguments index starts from 4
-		LuaVal &InputVal = args.get(4);
-		LuaVal &SliderVal = args.get(5);
+Fixes are submitted as pull requests via Github. For more information on how to
+properly submit a pull request, read the [how-to: maintain a remote fork](http://www.trinitycore.org/f/topic/6037-howto-maintain-a-remote-fork-for-pull-requests-tortoisegit/).
 
-		//MUST check if the value type is valid or else smallfolk_cpp will
-		//throw on obtaining that type
-		if(!InputVal.isstring() || !SliderVal.isnumber())
-		{
-			return;
-		}
 
-		sender->GetSession()->SendNotification("HandlePrint -> Stored String: %s, Input: %s, Slider Value: %f",
-			storedString.c_str(), InputVal.str().c_str(), SliderVal.num());
-	}
+## Copyright
 
-	void HandleSave(Player *sender, const LuaVal &args)
-	{
-	    //LuaVal args in a handler function is always a table
-		//Handler arguments index starts from 4
-		LuaVal &SaveVal = args.get(4);
+License: GPL 2.0
 
-		//MUST check if the value type is valid or else smallfolk_cpp will
-		//throw on obtaining that type
-		if(!SaveVal.isstring())
-		{
-			return;
-		}
+Read file [COPYING](COPYING)
 
-		storedString = SaveVal.str();
-		sender->GetSession()->SendNotification("Saved");
-	}
 
-	LuaVal InitArg(Player *sender)
-	{
-		LuaVal arg = LuaVal(TTABLE);
-		arg.set("key", 12.3);
-		arg.set("key2", false);
+## Authors &amp; Contributors
 
-		return arg;
-	}
+Read file [THANKS](THANKS)
 
-	LuaVal InitArg2(Player *sender)
-	{
-		return "LuaVal will implicitly create a string LuaVal for this arg";
-	}
 
-private:
-	std::string storedString;
-};
-```
+## Links
 
-### smallfolk_cpp LuaVal reference
+[Site](http://www.trinitycore.org)
 
-https://github.com/Rochet2/smallfolk_cpp
+[Wiki](http://trinitycore.info)
 
-### AIO functions
+[Documentation](http://www.trinitycore.net) (powered by Doxygen)
 
-```cpp
-class AIOScript
-{
-protected:
-    // Registers an AIO Handler script of scriptName
-	AIOScript(const char *scriptName);
-
-	// Registers a handler function to call when handling
-	// handlerName of this script.
-	void AddHandler(const char *handlerName, HandlerFunc function);
-
-	// Adds a client side handler to call and adds arguments
-	// to sends with it for AIO client addon initialization.
-		
-	// You can add additional arguments to the handler by
-	// calling this function again
-	void AddInitArgs(const std::string &scriptName, const std::string &handlerName,
-		ArgFunc a1 = ArgFunc(), ArgFunc a2 = ArgFunc(), ArgFunc a3 = ArgFunc(),
-		ArgFunc a4 = ArgFunc(), ArgFunc a5 = ArgFunc(), ArgFunc a6 = ArgFunc());
-
-	// Adds a WoW addon file to the list of addons with a unique
-	// addon name to send on AIO client addon initialization.
-	// Returns true if addon was added, false if addon name is taken.
-	//
-	// It is required to call World::ForceReloadPlayerAddons()
-	// if addons are added after server is fully initialized
-	// for online players to load the added addons.
-	bool AddAddon(const std::string &addonName, const std::string &fileName);
-
-	// Adds WoW addon code to the list of addons with a unique
-	// addon name to send on AIO client addon initialization.
-	// Returns true if addon code was added, false if addon name is taken.
-	//
-	// It is required to call World::ForceReloadPlayerAddons()
-	// if addons are added after server is fully initialized
-	// for online players to load the added addons.
-	bool AddAddonCode(const std::string &addonName, const std::string &code);
-	
-	// Returns pointer to an AIO script by its name and typename.
-	// Returns null if scriptName doesn't exist or typename was incorrect.
-	template<class ScriptClass>
-	ScriptClass *GetScript(const std::string &scriptName);
-}
-```
-
-AIOMsg.h
-
-```cpp
-class AIOMsg
-{
-public:
-	//Creates an empty AIOMsg
-	AIOMsg();
-
-	//Creates a AIO message and adds one block
-	AIOMsg(const std::string &scriptName, const std::string &handlerName,
-		const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
-		const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil())
-	{
-		Add(scriptName, handlerName, a1, a2, a3, a4, a5);
-	}
-
-	//Adds another block
-	//Another block will call another handler in one message
-	AIOMsg &Add(const std::string &scriptName, const std::string &handlerName,
-		const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
-		const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
-
-	//Appends the last block
-	//You can add additional arguments to the last block
-	AIOMsg &AppendLast(const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
-		const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
-};
-```
-
-Player.h
-
-```cpp
-//Returns whether AIO client has been initialized
-bool AIOInitialized() const { return m_aioinitialized; }
-
-// Sends an AIO message to the player
-// See: class AIOMsg
-void Player::AIOMessage(AIOMsg &msg);
-
-// Triggers an AIO script handler on the client
-// To trigger multiple handlers in one message or add more arguments
-// use Player::AIOMessage
-void Player::AIOHandle(const std::string &scriptName, const std::string &handlerName,
-	const LuaVal &a1 = LuaVal::nil(), const LuaVal &a2 = LuaVal::nil(), const LuaVal &a3 = LuaVal::nil(),
-	const LuaVal &a4 = LuaVal::nil(), const LuaVal &a5 = LuaVal::nil(), const LuaVal &a6 = LuaVal::nil());
-
-// Sends a simple string message to all players
-//
-// AIO can only understand smallfolk LuaVal::dumps() format
-// Handler functions are called by creating a table as below
-// {
-//     {n, ScriptName, HandlerName(optional), Arg1..N(optional) },
-//     {n, AnotherScriptName, AnotherHandlerName(optional), Arg1..N(optional) }
-// }
-// Where n is number of arguments including handler name as a argument
-void Player::SendSimpleAIOMessage(const std::string &message);
-
-// Forces a reload on the player addons
-// Syncs player addons with addons in addon list
-void Player::ForceReloadAddons();
-
-// Forces a reset on the player addons
-// Player addons and addon data is deleted and downloaded again
-void Player::ForceResetAddons();
-```
-
-World.h
-
-```cpp
-// AIO prefix configured in worldserver.conf
-std::string World::GetAIOPrefix() const;
-
-// AIO client LUA files path configured in worldserver.conf
-std::string World::GetAIOClientScriptPath() const;
-
-// Forces a reload on all player addons
-// Syncs player addons with addons in addon list
-void World::ForceReloadPlayerAddons();
-
-// Forces a reset on all player addons
-// Player addons and addon data is deleted and downloaded again
-void World::ForceResetPlayerAddons();
-
-// Sends an AIO message to all players
-// See: class AIOMsg
-void World::AIOMessageAll(AIOMsg &msg);
-
-// Sends a simple string message to all players
-
-// AIO can only understand smallfolk LuaVal::dumps() format
-// Handler functions are called by creating a table as below
-// {
-//     {n, ScriptName, HandlerName(optional), Arg1..N(optional) },
-//     {n, AnotherScriptName, AnotherHandlerName(optional), Arg1..N(optional) }
-// }
-// Where n is number of arguments including handler name as a argument
-void World::SendAllSimpleAIOMessage(const std::string &message);
-
-// Reloads client side addon files in the list of addons
-// and force reloads all player addons
-// Returns true if successful, false if an error occurred
-bool World::ReloadAddons();
-
-// Adds a WoW addon file to the list of addons with a unique
-// addon name to send on AIO client addon initialization.
-// Returns true if addon was added, false if addon name is already taken
-//
-// It is required to call World::ForceReloadPlayerAddons()
-// if addons are added after server is fully initialized
-// for online players to load the added addons.
-bool World::AddAddon(const std::string &name, const std::string &fileName);
-
-// Adds WoW addon code to the list of addons with a unique
-// addon name to send on AIO client addon initialization.
-// Returns true if addon code was added, false if addon name is already taken
-//
-// It is required to call World::ForceReloadPlayerAddons()
-// if addons are added after server is fully initialized
-// for online players to load the added addons.
-bool World::AddAddonCode(const std::string &addonName, const std::string &code, const std::string &file = "");
-
-// Removes an addon from addon list
-// Returns true if an addon was removed, false if addon not found
-//
-// It is required to call World::ForceReloadPlayerAddons()
-// if addons are removed after server is fully initialized
-// for online players to load the added addons.
-bool World::RemoveAddon(const std::string &addonName);
-```
-
-## AIO game commands
-
-+ caio version
-+ caio addaddon $addonName "$addonFile"
-+ caio removeaddon $addonName
-+ caio send $playerName "$message"
-+ caio sendall "$message"
-+ caio forcereload $playerName
-+ caio forcereset $playerName
-+ caio forcereloadall
-+ caio forceresetall
-+ caio reloadaddons
-
-## Reporting issues and submitting fixes
-
-Issues can be reported via the [Github issue tracker](https://github.com/SaiFi0102/CAIO-For-Trinity/issues). Fixes can be submitted as pull requests via Github.
-
-## Authors, Contributors &amp; Thanks
-
-+ Saif
-  + CAIO
-+ Rochet2
-    + [AIO](https://github.com/Rochet2/AIO) 
-    + [smallfolk_cpp](https://github.com/Rochet2/smallfolk_cpp) to handle and transmit Lua data in C++
+[Forums](http://www.trinitycore.org/f/)
