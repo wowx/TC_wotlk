@@ -1,19 +1,19 @@
 /*
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 #define _CRT_SECURE_NO_DEPRECATE
@@ -158,16 +158,16 @@ bool ExtractSingleWmo(std::string& fname)
         return true;
 
     int p = 0;
-    //Select root wmo files
+    // Select root wmo files
     char const* rchr = strrchr(plain_name, '_');
-    if(rchr != NULL)
+    if (rchr != NULL)
     {
         char cpy[4];
-        strncpy((char*)cpy, rchr, 4);
+        memcpy(cpy, rchr, 4);
         for (int i = 0; i < 4; ++i)
         {
             int m = cpy[i];
-            if(isdigit(m))
+            if (isdigit(m))
                 p++;
         }
     }
@@ -197,7 +197,7 @@ bool ExtractSingleWmo(std::string& fname)
         for (uint32 i = 0; i < froot.nGroups; ++i)
         {
             char temp[1024];
-            strcpy(temp, fname.c_str());
+            strncpy(temp, fname.c_str(), 1024);
             temp[fname.length()-4] = 0;
             char groupFileName[1024];
             sprintf(groupFileName, "%s_%03u.wmo", temp, i);
@@ -395,8 +395,10 @@ bool processArgv(int argc, char ** argv, const char *versionString)
             if((i+1)<argc)
             {
                 hasInputPathParam = true;
-                strcpy(input_path, argv[i+1]);
-                if (input_path[strlen(input_path) - 1] != '\\' || input_path[strlen(input_path) - 1] != '/')
+                strncpy(input_path, argv[i + 1], sizeof(input_path));
+                input_path[sizeof(input_path) - 1] = '\0';
+
+                if (input_path[strlen(input_path) - 1] != '\\' && input_path[strlen(input_path) - 1] != '/')
                     strcat(input_path, "/");
                 ++i;
             }
@@ -461,8 +463,7 @@ int main(int argc, char ** argv)
             printf("Your output directory seems to be polluted, please use an empty directory!\n");
             printf("<press return to exit>");
             char garbage[2];
-            scanf("%c", garbage);
-            return 1;
+            return scanf("%c", garbage);
         }
     }
 
@@ -470,7 +471,7 @@ int main(int argc, char ** argv)
     //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
     // Create the working directory
     if (mkdir(szWorkDirWmo
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
                     , 0711
 #endif
                     ))
@@ -512,11 +513,22 @@ int main(int argc, char ** argv)
         map_ids=new map_id[map_count];
         for (unsigned int x=0;x<map_count;++x)
         {
-            map_ids[x].id=dbc->getRecord (x).getUInt(0);
-            strcpy(map_ids[x].name,dbc->getRecord(x).getString(1));
-            printf("Map - %s\n",map_ids[x].name);
-        }
+            map_ids[x].id = dbc->getRecord(x).getUInt(0);
 
+            const char* map_name = dbc->getRecord(x).getString(1);
+            size_t max_map_name_length = sizeof(map_ids[x].name);
+            if (strlen(map_name) >= max_map_name_length)
+            {
+                delete dbc;
+                delete[] map_ids;
+                printf("FATAL ERROR: Map name too long.\n");
+                return 1;
+            }
+
+            strncpy(map_ids[x].name, map_name, max_map_name_length);
+            map_ids[x].name[max_map_name_length - 1] = '\0';
+            printf("Map - %s\n", map_ids[x].name);
+        }
 
         delete dbc;
         ParsMapFiles();

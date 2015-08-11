@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -102,10 +102,8 @@ enum ItemBondingType
 
 #define MAX_BIND_TYPE                             6
 
-/* TODO
-    // need to know cases when using item is not allowed in shapeshift
-    ITEM_PROTO_FLAG_USABLE_WHEN_SHAPESHIFTED    = 0x00800000, // Item can be used in shapeshift forms
-*/
+/* /// @todo: Requiring actual cases in which using (an) item isn't allowed while shapeshifted. Else, this flag would need an implementation.
+    ITEM_PROTO_FLAG_USABLE_WHEN_SHAPESHIFTED    = 0x00800000, // Item can be used in shapeshift forms */
 
 enum ItemProtoFlags
 {
@@ -142,9 +140,6 @@ enum ItemProtoFlags
     ITEM_PROTO_FLAG_UNK11                       = 0x40000000, // ?
     ITEM_PROTO_FLAG_UNK12                       = 0x80000000  // ?
 };
-
-/* TODO
-*/
 
 enum ItemFieldFlags
 {
@@ -578,6 +573,13 @@ struct _Socket
     uint32 Content;
 };
 
+// GCC have alternative #pragma pack() syntax and old gcc version not support pack(pop), also any gcc version not support it at some platform
+#if defined(__GNUC__)
+#pragma pack()
+#else
+#pragma pack(pop)
+#endif
+
 #define MAX_ITEM_PROTO_DAMAGES 2                            // changed in 3.1.0
 #define MAX_ITEM_PROTO_SOCKETS 3
 #define MAX_ITEM_PROTO_SPELLS  5
@@ -589,7 +591,7 @@ struct ItemTemplate
     uint32 Class;                                           // id from ItemClass.dbc
     uint32 SubClass;                                        // id from ItemSubClass.dbc
     int32  SoundOverrideSubclass;                           // < 0: id from ItemSubClass.dbc, used to override weapon sound from actual SubClass
-    std::string  Name1;
+    std::string Name1;
     uint32 DisplayInfoID;                                   // id from ItemDisplayInfo.dbc
     uint32 Quality;
     uint32 Flags;
@@ -682,7 +684,7 @@ struct ItemTemplate
         return false;
     }
 
-    bool IsCurrencyToken() const { return BagFamily & BAG_FAMILY_MASK_CURRENCY_TOKENS; }
+    bool IsCurrencyToken() const { return (BagFamily & BAG_FAMILY_MASK_CURRENCY_TOKENS) != 0; }
 
     uint32 GetMaxStackSize() const
     {
@@ -732,7 +734,7 @@ struct ItemTemplate
             default:
                 break;
         }
-        return itemLevel;
+        return std::max<float>(0.f, itemLevel);
     }
 
     bool IsPotion() const { return Class == ITEM_CLASS_CONSUMABLE && SubClass == ITEM_SUBCLASS_POTION; }
@@ -742,7 +744,7 @@ struct ItemTemplate
 };
 
 // Benchmarked: Faster than std::map (insert/find)
-typedef UNORDERED_MAP<uint32, ItemTemplate> ItemTemplateContainer;
+typedef std::unordered_map<uint32, ItemTemplate> ItemTemplateContainer;
 
 struct ItemLocale
 {
@@ -761,10 +763,4 @@ struct ItemSetNameLocale
     StringVector Name;
 };
 
-// GCC have alternative #pragma pack() syntax and old gcc version not support pack(pop), also any gcc version not support it at some platform
-#if defined(__GNUC__)
-#pragma pack()
-#else
-#pragma pack(pop)
-#endif
 #endif

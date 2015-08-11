@@ -1,9 +1,7 @@
 -- gameobject
-ALTER TABLE `gameobject`ADD COLUMN `size` FLOAT NOT NULL DEFAULT '1' AFTER `state`;
-UPDATE gameobject SET size = (SELECT size FROM gameobject_template WHERE entry = gameobject.id);
-INSERT INTO `command` (`name`, `security`, `help`) VALUES ('gobject set scale', 2, 'Syntax: .gobject set scale #guid #scale\r\n\r\nGameobject with DB guid #guid size changed to #scale with related world vision update for players. Gameobject scale saved to DB and persistent.');
+ALTER TABLE `gameobject`ADD COLUMN `size` FLOAT NOT NULL DEFAULT '-1';
+INSERT INTO `command` (`name`, `permission`, `help`) VALUES ('gobject set scale', 1398, 'Syntax: .gobject set scale #guid #scale\r\n\r\nGameobject with DB guid #guid size changed to #scale. Gameobject scale saved to DB and persistent. Does not affect other gameobjects of same entry. Using -1 scale uses the default scale from template.');
 
 -- creature
-ALTER TABLE `creature` ADD COLUMN `size` FLOAT NOT NULL DEFAULT '1' AFTER `dynamicflags`;
-UPDATE creature SET size = (SELECT size FROM creature_template WHERE entry = creature.id);
-INSERT INTO `command` (`name`, `security`, `help`) VALUES ('npc set scale', 2, 'Syntax: .npc set scale #scale\r\n\r\nSelected NPC size changed to #scale with related world vision update for players. NPC scale saved to DB and persistent.');
+ALTER TABLE `creature` ADD COLUMN `size` FLOAT NOT NULL DEFAULT '-1';
+INSERT INTO `command` (`name`, `permission`, `help`) VALUES ('npc set scale', 1589, 'Syntax: .npc set scale #scale\r\n\r\nSelected NPC size changed to #scale. NPC scale saved to DB and persistent. Does not affect other creatures of same entry. Using -1 scale uses the default scale from template.');

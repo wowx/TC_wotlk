@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -18,15 +18,14 @@
 
 #include "PassiveAI.h"
 #include "Creature.h"
-#include "TemporarySummon.h"
 
 PassiveAI::PassiveAI(Creature* c) : CreatureAI(c) { me->SetReactState(REACT_PASSIVE); }
 PossessedAI::PossessedAI(Creature* c) : CreatureAI(c) { me->SetReactState(REACT_PASSIVE); }
 NullCreatureAI::NullCreatureAI(Creature* c) : CreatureAI(c) { me->SetReactState(REACT_PASSIVE); }
 
-void PassiveAI::UpdateAI(const uint32)
+void PassiveAI::UpdateAI(uint32)
 {
-    if (me->isInCombat() && me->getAttackers().empty())
+    if (me->IsInCombat() && me->getAttackers().empty())
         EnterEvadeMode();
 }
 
@@ -35,11 +34,11 @@ void PossessedAI::AttackStart(Unit* target)
     me->Attack(target, true);
 }
 
-void PossessedAI::UpdateAI(const uint32 /*diff*/)
+void PossessedAI::UpdateAI(uint32 /*diff*/)
 {
-    if (me->getVictim())
+    if (me->GetVictim())
     {
-        if (!me->IsValidAttackTarget(me->getVictim()))
+        if (!me->IsValidAttackTarget(me->GetVictim()))
             me->AttackStop();
         else
             DoMeleeAttackIfReady();
@@ -75,5 +74,5 @@ void CritterAI::EnterEvadeMode()
 void TriggerAI::IsSummonedBy(Unit* summoner)
 {
     if (me->m_spells[0])
-        me->CastSpell(me, me->m_spells[0], false, 0, 0, summoner->GetGUID());
+        me->CastSpell(me, me->m_spells[0], false, nullptr, nullptr, summoner->GetGUID());
 }

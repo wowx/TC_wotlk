@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -16,38 +16,49 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <boost/asio/ip/tcp.hpp>
 #include "Common.h"
 #include "RealmList.h"
 #include "Database/DatabaseEnv.h"
 
-RealmList::RealmList() : m_UpdateInterval(0), m_NextUpdateTime(time(NULL)) { }
+namespace boost { namespace asio { namespace ip { class address; } } }
+
+RealmList::RealmList() : m_UpdateInterval(0), m_NextUpdateTime(time(NULL)), _resolver(nullptr) { }
+RealmList::~RealmList()
+{
+    delete _resolver;
+}
 
 // Load the realm list from the database
-void RealmList::Initialize(uint32 updateInterval)
+void RealmList::Initialize(boost::asio::io_service& ioService, uint32 updateInterval)
 {
+    _resolver = new boost::asio::ip::tcp::resolver(ioService);
     m_UpdateInterval = updateInterval;
 
     // Get the content of the realmlist table in the database
     UpdateRealms(true);
 }
 
-void RealmList::UpdateRealm(uint32 ID, const std::string& name, const std::string& address, uint16 port, uint8 icon, RealmFlags flag, uint8 timezone, AccountTypes allowedSecurityLevel, float popu, uint32 build)
+void RealmList::UpdateRealm(uint32 id, const std::string& name, ip::address const& address, ip::address const& localAddr,
+    ip::address const& localSubmask, uint16 port, uint8 icon, RealmFlags flag, uint8 timezone, AccountTypes allowedSecurityLevel, float population, uint32 build)
 {
     // Create new if not exist or update existed
     Realm& realm = m_realms[name];
 
-    realm.m_ID = ID;
+    realm.m_ID = id;
     realm.name = name;
     realm.icon = icon;
     realm.flag = flag;
     realm.timezone = timezone;
     realm.allowedSecurityLevel = allowedSecurityLevel;
-    realm.populationLevel = popu;
+    realm.populationLevel = population;
 
     // Append port to IP address.
-    std::ostringstream ss;
-    ss << address << ':' << port;
-    realm.address = ss.str();
+
+    realm.ExternalAddress = address;
+    realm.LocalAddress = localAddr;
+    realm.LocalSubnetMask = localSubmask;
+    realm.port = port;
     realm.gamebuild = build;
 }
 
@@ -68,7 +79,7 @@ void RealmList::UpdateIfNeed()
 
 void RealmList::UpdateRealms(bool init)
 {
-    sLog->outInfo(LOG_FILTER_AUTHSERVER, "Updating Realm List...");
+    TC_LOG_INFO("server.authserver", "Updating Realm List...");
 
     PreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_REALMLIST);
     PreparedQueryResult result = LoginDatabase.Query(stmt);
@@ -78,22 +89,64 @@ void RealmList::UpdateRealms(bool init)
     {
         do
         {
-            Field* fields = result->Fetch();
-            uint32 realmId             = fields[0].GetUInt32();
-            const std::string& name    = fields[1].GetString();
-            const std::string& address = fields[2].GetString();
-            uint16 port                = fields[3].GetUInt16();
-            uint8 icon                 = fields[4].GetUInt8();
-            RealmFlags flag            = RealmFlags(fields[5].GetUInt8());
-            uint8 timezone             = fields[6].GetUInt8();
-            uint8 allowedSecurityLevel = fields[7].GetUInt8();
-            float pop                  = fields[8].GetFloat();
-            uint32 build               = fields[9].GetUInt32();
+            try
+            {
+                boost::asio::ip::tcp::resolver::iterator end;
 
-            UpdateRealm(realmId, name, address, port, icon, flag, timezone, (allowedSecurityLevel <= SEC_ADMINISTRATOR ? AccountTypes(allowedSecurityLevel) : SEC_ADMINISTRATOR), pop, build);
+                Field* fields = result->Fetch();
+                uint32 realmId = fields[0].GetUInt32();
+                std::string name = fields[1].GetString();
+                boost::asio::ip::tcp::resolver::query externalAddressQuery(ip::tcp::v4(), fields[2].GetString(), "");
 
-            if (init)
-                sLog->outInfo(LOG_FILTER_AUTHSERVER, "Added realm \"%s\".", fields[1].GetCString());
+                boost::system::error_code ec;
+                boost::asio::ip::tcp::resolver::iterator endPoint = _resolver->resolve(externalAddressQuery, ec);
+                if (endPoint == end || ec)
+                {
+                    TC_LOG_ERROR("server.authserver", "Could not resolve address %s", fields[2].GetString().c_str());
+                    return;
+                }
+
+                ip::address externalAddress = (*endPoint).endpoint().address();
+
+                boost::asio::ip::tcp::resolver::query localAddressQuery(ip::tcp::v4(), fields[3].GetString(), "");
+                endPoint = _resolver->resolve(localAddressQuery, ec);
+                if (endPoint == end || ec)
+                {
+                    TC_LOG_ERROR("server.authserver", "Could not resolve address %s", fields[3].GetString().c_str());
+                    return;
+                }
+
+                ip::address localAddress = (*endPoint).endpoint().address();
+
+                boost::asio::ip::tcp::resolver::query localSubmaskQuery(ip::tcp::v4(), fields[4].GetString(), "");
+                endPoint = _resolver->resolve(localSubmaskQuery, ec);
+                if (endPoint == end || ec)
+                {
+                    TC_LOG_ERROR("server.authserver", "Could not resolve address %s", fields[4].GetString().c_str());
+                    return;
+                }
+
+                ip::address localSubmask = (*endPoint).endpoint().address();
+
+                uint16 port = fields[5].GetUInt16();
+                uint8 icon = fields[6].GetUInt8();
+                RealmFlags flag = RealmFlags(fields[7].GetUInt8());
+                uint8 timezone = fields[8].GetUInt8();
+                uint8 allowedSecurityLevel = fields[9].GetUInt8();
+                float pop = fields[10].GetFloat();
+                uint32 build = fields[11].GetUInt32();
+
+                UpdateRealm(realmId, name, externalAddress, localAddress, localSubmask, port, icon, flag, timezone,
+                    (allowedSecurityLevel <= SEC_ADMINISTRATOR ? AccountTypes(allowedSecurityLevel) : SEC_ADMINISTRATOR), pop, build);
+
+                if (init)
+                    TC_LOG_INFO("server.authserver", "Added realm \"%s\" at %s:%u.", name.c_str(), m_realms[name].ExternalAddress.to_string().c_str(), port);
+            }
+            catch (std::exception& ex)
+            {
+                TC_LOG_ERROR("server.authserver", "Realmlist::UpdateRealms has thrown an exception: %s", ex.what());
+                ASSERT(false);
+            }
         }
         while (result->NextRow());
     }

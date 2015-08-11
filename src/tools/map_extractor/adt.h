@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2005-2011 MaNGOS <http://getmangos.com/>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef ADT_H
 #define ADT_H
 
@@ -21,6 +39,8 @@ enum LiquidType
 #define ADT_CELLS_PER_GRID    16
 #define ADT_CELL_SIZE         8
 #define ADT_GRID_SIZE         (ADT_CELLS_PER_GRID*ADT_CELL_SIZE)
+
+#pragma pack(push, 1)
 
 //
 // Adt file height map chunk
@@ -47,8 +67,8 @@ class adt_MCLQ
         uint32 fcc;
         char   fcc_txt[4];
     };
-    uint32 size;
 public:
+    uint32 size;
     float height1;
     float height2;
     struct liquid_data{
@@ -76,8 +96,8 @@ class adt_MCNK
         uint32 fcc;
         char   fcc_txt[4];
     };
-    uint32 size;
 public:
+    uint32 size;
     uint32 flags;
     uint32 ix;
     uint32 iy;
@@ -135,8 +155,8 @@ class adt_MCIN
         uint32 fcc;
         char   fcc_txt[4];
     };
-    uint32 size;
 public:
+    uint32 size;
     struct adt_CELLS{
         uint32 offsMCNK;
         uint32 size;
@@ -237,7 +257,7 @@ public:
         if (h->offsData2a)
             return *((uint64 *)((uint8*)this + 8 + h->offsData2a));
         else
-            return 0xFFFFFFFFFFFFFFFFLL;
+            return 0xFFFFFFFFFFFFFFFFuLL;
     }
 
 };
@@ -251,6 +271,7 @@ class adt_MHDR
         uint32 fcc;
         char   fcc_txt[4];
     };
+public:
     uint32 size;
 
     uint32 pad;
@@ -269,7 +290,6 @@ class adt_MHDR
     uint32 data3;
     uint32 data4;
     uint32 data5;
-public:
     bool prepareLoadedData();
     adt_MCIN *getMCIN(){ return (adt_MCIN *)((uint8 *)&pad+offsMCIN);}
     adt_MH2O *getMH2O(){ return offsMH2O ? (adt_MH2O *)((uint8 *)&pad+offsMH2O) : 0;}
@@ -285,5 +305,7 @@ public:
 
     adt_MHDR *a_grid;
 };
+
+#pragma pack(pop)
 
 #endif

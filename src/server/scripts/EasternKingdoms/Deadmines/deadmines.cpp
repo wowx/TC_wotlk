@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -27,6 +27,8 @@ EndScriptData */
 #include "ScriptedCreature.h"
 #include "deadmines.h"
 #include "Spell.h"
+#include "Player.h"
+#include "WorldSession.h"
 
 /*#####
 # item_Defias_Gunpowder
@@ -37,7 +39,7 @@ class item_defias_gunpowder : public ItemScript
 public:
     item_defias_gunpowder() : ItemScript("item_defias_gunpowder") { }
 
-    bool OnUse(Player* player, Item* item, SpellCastTargets const& targets)
+    bool OnUse(Player* player, Item* item, SpellCastTargets const& targets) override
     {
         InstanceScript* instance = player->GetInstanceScript();
 

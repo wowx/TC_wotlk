@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -18,15 +18,14 @@
 #include "WorldSession.h"
 #include "Player.h"
 #include "ObjectMgr.h"
-#include "Opcodes.h"
 #include "Log.h"
 
-void WorldSession::HandleGrantLevel(WorldPacket& recv_data)
+void WorldSession::HandleGrantLevel(WorldPacket& recvData)
 {
-    sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: CMSG_GRANT_LEVEL");
+    TC_LOG_DEBUG("network", "WORLD: CMSG_GRANT_LEVEL");
 
-    uint64 guid;
-    recv_data.readPackGUID(guid);
+    ObjectGuid guid;
+    recvData >> guid.ReadAsPacked();
 
     Player* target = ObjectAccessor::GetObjectInWorld(guid, _player);
 
@@ -48,7 +47,8 @@ void WorldSession::HandleGrantLevel(WorldPacket& recv_data)
     else if (target->GetGroup() != _player->GetGroup())
         error = ERR_REFER_A_FRIEND_NOT_IN_GROUP;
 
-    if (error) {
+    if (error)
+    {
         WorldPacket data(SMSG_REFER_A_FRIEND_FAILURE, 24);
         data << uint32(error);
         if (error == ERR_REFER_A_FRIEND_NOT_IN_GROUP)
@@ -59,16 +59,16 @@ void WorldSession::HandleGrantLevel(WorldPacket& recv_data)
     }
 
     WorldPacket data2(SMSG_PROPOSE_LEVEL_GRANT, 8);
-    data2.append(_player->GetPackGUID());
+    data2 << _player->GetPackGUID();
     target->GetSession()->SendPacket(&data2);
 }
 
-void WorldSession::HandleAcceptGrantLevel(WorldPacket& recv_data)
+void WorldSession::HandleAcceptGrantLevel(WorldPacket& recvData)
 {
-    sLog->outDebug(LOG_FILTER_NETWORKIO, "WORLD: CMSG_ACCEPT_LEVEL_GRANT");
+    TC_LOG_DEBUG("network", "WORLD: CMSG_ACCEPT_LEVEL_GRANT");
 
-    uint64 guid;
-    recv_data.readPackGUID(guid);
+    ObjectGuid guid;
+    recvData >> guid.ReadAsPacked();
 
     Player* other = ObjectAccessor::GetObjectInWorld(guid, _player);
     if (!(other && other->GetSession()))

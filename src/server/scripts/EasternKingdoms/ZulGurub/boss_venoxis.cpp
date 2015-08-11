@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -23,14 +23,14 @@
 #include "zulgurub.h"
 
 /*
- * TODO:
+ * @todo
  * - Fix timers (research some more)
  */
 
-enum Texts
+enum Says
 {
     SAY_VENOXIS_TRANSFORM           = 1,        // Let the coils of hate unfurl!
-    SAY_VENOXIS_DEATH               = 2,        // Ssserenity.. at lassst!
+    SAY_VENOXIS_DEATH               = 2         // Ssserenity.. at lassst!
 };
 
 enum Spells
@@ -42,7 +42,6 @@ enum Spells
     SPELL_HOLY_NOVA                 = 23858,
     SPELL_HOLY_FIRE                 = 23860,
     SPELL_HOLY_WRATH                = 23979,
-
     // snake form
     SPELL_POISON_CLOUD              = 23861,
     SPELL_VENOM_SPIT                = 23862,
@@ -50,15 +49,9 @@ enum Spells
     SPELL_PARASITIC_SERPENT         = 23865,
     SPELL_SUMMON_PARASITIC_SERPENT  = 23866,
     SPELL_PARASITIC_SERPENT_TRIGGER = 23867,
-
     // used when swapping event-stages
     SPELL_VENOXIS_TRANSFORM         = 23849,    // 50% health - shapechange to cobra
-    SPELL_FRENZY                    = 8269,     // 20% health - frenzy
-};
-
-enum NPCs
-{
-    NPC_PARASITIC_SERPENT           = 14884,
+    SPELL_FRENZY                    = 8269      // 20% health - frenzy
 };
 
 enum Events
@@ -70,10 +63,8 @@ enum Events
     EVENT_HOLY_NOVA                 = 4,
     EVENT_HOLY_FIRE                 = 5,
     EVENT_HOLY_WRATH                = 6,
-
     // phase-changing
     EVENT_TRANSFORM                 = 7,
-
     // snake form events
     EVENT_POISON_CLOUD              = 8,
     EVENT_VENOM_SPIT                = 9,
@@ -84,49 +75,57 @@ enum Events
 enum Phases
 {
     PHASE_ONE                       = 1,    // troll form
-    PHASE_TWO                       = 2,    // snake form
+    PHASE_TWO                       = 2     // snake form
+};
+
+enum NPCs
+{
+    NPC_PARASITIC_SERPENT           = 14884
 };
 
 class boss_venoxis : public CreatureScript
 {
     public:
-        boss_venoxis() : CreatureScript("boss_venoxis") {}
+        boss_venoxis() : CreatureScript("boss_venoxis") { }
 
         struct boss_venoxisAI : public BossAI
         {
             boss_venoxisAI(Creature* creature) : BossAI(creature, DATA_VENOXIS)
             {
+                Initialize();
             }
 
-            void Reset()
+            void Initialize()
             {
-                events.Reset();
-                summons.DespawnAll();
-
-                // make sure this boss is properly reset
-                instance->SetBossState(DATA_VENOXIS, NOT_STARTED);
-
-                // remove all spells and auras from previous attempts
-                me->RemoveAllAuras();
-                me->SetReactState(REACT_PASSIVE);
-
-                // set some internally used variables to their defaults
                 _inMeleeRange = 0;
                 _transformed = false;
                 _frenzied = false;
+            }
 
+            void Reset() override
+            {
+                _Reset();
+                // remove all spells and auras from previous attempts
+                me->RemoveAllAuras();
+                me->SetReactState(REACT_PASSIVE);
+                // set some internally used variables to their defaults
+                Initialize();
                 events.SetPhase(PHASE_ONE);
             }
 
-            void EnterCombat(Unit* /*who*/)
+            void JustDied(Unit* /*killer*/) override
             {
+                _JustDied();
+                Talk(SAY_VENOXIS_DEATH);
+                me->RemoveAllAuras();
+            }
+
+            void EnterCombat(Unit* /*who*/) override
+            {
+                _EnterCombat();
                 me->SetReactState(REACT_AGGRESSIVE);
-
-                instance->SetBossState(DATA_VENOXIS, IN_PROGRESS);
-
                 // Always running events
                 events.ScheduleEvent(EVENT_THRASH, 5000);
-
                 // Phase one events (regular form)
                 events.ScheduleEvent(EVENT_HOLY_NOVA, 5000, 0, PHASE_ONE);
                 events.ScheduleEvent(EVENT_DISPEL_MAGIC, 35000, 0, PHASE_ONE);
@@ -140,7 +139,7 @@ class boss_venoxis : public CreatureScript
                 DoZoneInCombat();
             }
 
-            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/)
+            void DamageTaken(Unit* /*attacker*/, uint32& /*damage*/) override
             {
                 // check if venoxis is ready to transform
                 if (!_transformed && !HealthAbovePct(50))
@@ -157,15 +156,7 @@ class boss_venoxis : public CreatureScript
                 }
             }
 
-            void JustDied(Unit* /*killer*/)
-            {
-                Talk(SAY_VENOXIS_DEATH);
-                // venoxis is dead, mark him as such for the instance
-                instance->SetBossState(DATA_VENOXIS, DONE);
-                me->RemoveAllAuras();
-            }
-
-            void UpdateAI(const uint32 diff)
+            void UpdateAI(uint32 diff) override
             {
                 if (!UpdateVictim())
                     return;
@@ -185,7 +176,6 @@ class boss_venoxis : public CreatureScript
                             DoCast(me, SPELL_THRASH, true);
                             events.ScheduleEvent(EVENT_THRASH, urand(10000, 20000));
                             break;
-
                         // troll form spells and Actions (first part)
                         case EVENT_DISPEL_MAGIC:
                             DoCast(me, SPELL_DISPEL_MAGIC);
@@ -208,7 +198,7 @@ class boss_venoxis : public CreatureScript
 
                             // trigger spellcast only if we have 3 or more targets to affect
                             if (_inMeleeRange >= 3)
-                                DoCast(me->getVictim(), SPELL_HOLY_NOVA);
+                                DoCastVictim(SPELL_HOLY_NOVA);
 
                             events.ScheduleEvent(EVENT_HOLY_NOVA, urand(45000, 75000), 0, PHASE_ONE);
                             break;
@@ -280,7 +270,7 @@ class boss_venoxis : public CreatureScript
             bool _frenzied;
         };
 
-        CreatureAI* GetAI(Creature* creature) const
+        CreatureAI* GetAI(Creature* creature) const override
         {
             return new boss_venoxisAI(creature);
         }

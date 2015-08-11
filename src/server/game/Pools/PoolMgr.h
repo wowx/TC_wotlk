@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://www.mangosproject.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -20,7 +20,6 @@
 #define TRINITY_POOLHANDLER_H
 
 #include "Define.h"
-#include <ace/Singleton.h>
 #include "Creature.h"
 #include "GameObject.h"
 #include "QuestDef.h"
@@ -34,7 +33,7 @@ struct PoolObject
 {
     uint32  guid;
     float   chance;
-    PoolObject(uint32 _guid, float _chance): guid(_guid), chance(fabs(_chance)) {}
+    PoolObject(uint32 _guid, float _chance) : guid(_guid), chance(std::fabs(_chance)) { }
 };
 
 class Pool                                                  // for Pool of Pool case
@@ -73,7 +72,7 @@ class PoolGroup
     public:
         explicit PoolGroup() : poolId(0) { }
         void SetPoolId(uint32 pool_id) { poolId = pool_id; }
-        ~PoolGroup() {};
+        ~PoolGroup() { };
         bool isEmpty() const { return ExplicitlyChanced.empty() && EqualChanced.empty(); }
         void AddEntry(PoolObject& poolitem, uint32 maxentries);
         bool CheckPool() const;
@@ -104,13 +103,17 @@ typedef std::pair<PooledQuestRelation::iterator, PooledQuestRelation::iterator> 
 
 class PoolMgr
 {
-    friend class ACE_Singleton<PoolMgr, ACE_Null_Mutex>;
-
     private:
         PoolMgr();
-        ~PoolMgr() {};
+        ~PoolMgr() { };
 
     public:
+        static PoolMgr* instance()
+        {
+            static PoolMgr instance;
+            return &instance;
+        }
+
         void LoadFromDB();
         void LoadQuestPools();
         void SaveQuestsToDB();
@@ -164,7 +167,7 @@ class PoolMgr
         ActivePoolData mSpawnedData;
 };
 
-#define sPoolMgr ACE_Singleton<PoolMgr, ACE_Null_Mutex>::instance()
+#define sPoolMgr PoolMgr::instance()
 
 // Method that tell if the creature is part of a pool and return the pool id if yes
 template<>

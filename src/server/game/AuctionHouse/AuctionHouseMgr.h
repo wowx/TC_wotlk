@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -19,8 +19,6 @@
 #ifndef _AUCTION_HOUSE_MGR_H
 #define _AUCTION_HOUSE_MGR_H
 
-#include <ace/Singleton.h>
-
 #include "Common.h"
 #include "DatabaseEnv.h"
 #include "DBCStructure.h"
@@ -34,18 +32,22 @@ class WorldPacket;
 
 enum AuctionError
 {
-    AUCTION_OK = 0,
-    AUCTION_INTERNAL_ERROR = 2,
-    AUCTION_NOT_ENOUGHT_MONEY = 3,
-    AUCTION_ITEM_NOT_FOUND = 4,
-    CANNOT_BID_YOUR_AUCTION_ERROR = 10
+    ERR_AUCTION_OK                  = 0,
+    ERR_AUCTION_INVENTORY           = 1,
+    ERR_AUCTION_DATABASE_ERROR      = 2,
+    ERR_AUCTION_NOT_ENOUGHT_MONEY   = 3,
+    ERR_AUCTION_ITEM_NOT_FOUND      = 4,
+    ERR_AUCTION_HIGHER_BID          = 5,
+    ERR_AUCTION_BID_INCREMENT       = 7,
+    ERR_AUCTION_BID_OWN             = 10,
+    ERR_AUCTION_RESTRICTED_ACCOUNT  = 13
 };
 
 enum AuctionAction
 {
-    AUCTION_SELL_ITEM = 0,
-    AUCTION_CANCEL = 1,
-    AUCTION_PLACE_BID = 2
+    AUCTION_SELL_ITEM   = 0,
+    AUCTION_CANCEL      = 1,
+    AUCTION_PLACE_BID   = 2
 };
 
 enum MailAuctionAnswers
@@ -63,8 +65,8 @@ struct AuctionEntry
 {
     uint32 Id;
     uint32 auctioneer;                                      // creature low guid
-    uint32 item_guidlow;
-    uint32 item_template;
+    uint32 itemGUIDLow;
+    uint32 itemEntry;
     uint32 itemCount;
     uint32 owner;
     uint32 startbid;                                        //maybe useless
@@ -85,7 +87,6 @@ struct AuctionEntry
     void DeleteFromDB(SQLTransaction& trans) const;
     void SaveToDB(SQLTransaction& trans) const;
     bool LoadFromDB(Field* fields);
-    bool LoadFromFieldList(Field* fields);
     std::string BuildAuctionMailSubject(MailAuctionAnswers response) const;
     static std::string BuildAuctionMailBody(uint32 lowGuid, uint32 bid, uint32 buyout, uint32 deposit, uint32 cut);
 
@@ -95,8 +96,6 @@ struct AuctionEntry
 class AuctionHouseObject
 {
   public:
-    // Initialize storage
-    AuctionHouseObject() { next = AuctionsMap.begin(); }
     ~AuctionHouseObject()
     {
         for (AuctionEntryMap::iterator itr = AuctionsMap.begin(); itr != AuctionsMap.end(); ++itr)
@@ -118,7 +117,7 @@ class AuctionHouseObject
 
     void AddAuction(AuctionEntry* auction);
 
-    bool RemoveAuction(AuctionEntry* auction, uint32 item_template);
+    bool RemoveAuction(AuctionEntry* auction);
 
     void Update();
 
@@ -131,22 +130,22 @@ class AuctionHouseObject
 
   private:
     AuctionEntryMap AuctionsMap;
-
-    // storage for "next" auction item for next Update()
-    AuctionEntryMap::const_iterator next;
 };
 
 class AuctionHouseMgr
 {
-    friend class ACE_Singleton<AuctionHouseMgr, ACE_Null_Mutex>;
-
     private:
         AuctionHouseMgr();
         ~AuctionHouseMgr();
 
     public:
+        static AuctionHouseMgr* instance()
+        {
+            static AuctionHouseMgr instance;
+            return &instance;
+        }
 
-        typedef UNORDERED_MAP<uint32, Item*> ItemMap;
+        typedef std::unordered_map<uint32, Item*> ItemMap;
 
         AuctionHouseObject* GetAuctionsMap(uint32 factionTemplateId);
         AuctionHouseObject* GetBidsMap(uint32 factionTemplateId);
@@ -173,15 +172,12 @@ class AuctionHouseMgr
 
     public:
 
-        // Used primarily at server start to avoid loading a list of expired auctions
-        void DeleteExpiredAuctionsAtStartup();
-
         //load first auction items, because of check if item exists, when loading
         void LoadAuctionItems();
         void LoadAuctions();
 
         void AddAItem(Item* it);
-        bool RemoveAItem(uint32 id);
+        bool RemoveAItem(uint32 id, bool deleteItem = false);
 
         void Update();
 
@@ -194,6 +190,6 @@ class AuctionHouseMgr
         ItemMap mAitems;
 };
 
-#define sAuctionMgr ACE_Singleton<AuctionHouseMgr, ACE_Null_Mutex>::instance()
+#define sAuctionMgr AuctionHouseMgr::instance()
 
 #endif

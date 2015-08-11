@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -20,15 +20,14 @@
 #define SC_SCRIPTMGR_H
 
 #include "Common.h"
-#include <ace/Singleton.h>
-#include <ace/Atomic_Op.h>
-
+#include <atomic>
 #include "DBCStores.h"
-#include "Player.h"
+#include "QuestDef.h"
 #include "SharedDefines.h"
 #include "World.h"
 #include "Weather.h"
 
+class AccountMgr;
 class AuctionHouseObject;
 class AuraScript;
 class Battleground;
@@ -60,6 +59,7 @@ class Vehicle;
 class WorldPacket;
 class WorldSocket;
 class WorldObject;
+class WorldSession;
 
 struct AchievementCriteriaData;
 struct AuctionEntry;
@@ -70,11 +70,9 @@ struct OutdoorPvPData;
 
 #define VISIBLE_RANGE       166.0f                          //MAX visible range (size of grid)
 
-// Generic scripting text function.
-void DoScriptText(int32 textEntry, WorldObject* pSource, Unit* target = NULL);
 
 /*
-    TODO: Add more script type classes.
+    @todo Add more script type classes.
 
     MailScript
     SessionScript
@@ -185,6 +183,8 @@ template<class TObject> class UpdatableScript
         {
         }
 
+        virtual ~UpdatableScript() { }
+
     public:
 
         virtual void OnUpdate(TObject* /*obj*/, uint32 /*diff*/) { }
@@ -198,7 +198,7 @@ class SpellScriptLoader : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Should return a fully valid SpellScript pointer.
         virtual SpellScript* GetSpellScript() const { return NULL; }
@@ -215,30 +215,30 @@ class ServerScript : public ScriptObject
 
     public:
 
-        // Called when reactive socket I/O is started (WorldSocketMgr).
+        // Called when reactive socket I/O is started (WorldTcpSessionMgr).
         virtual void OnNetworkStart() { }
 
         // Called when reactive I/O is stopped.
         virtual void OnNetworkStop() { }
 
         // Called when a remote socket establishes a connection to the server. Do not store the socket object.
-        virtual void OnSocketOpen(WorldSocket* /*socket*/) { }
+        virtual void OnSocketOpen(std::shared_ptr<WorldSocket> /*socket*/) { }
 
         // Called when a socket is closed. Do not store the socket object, and do not rely on the connection
         // being open; it is not.
-        virtual void OnSocketClose(WorldSocket* /*socket*/, bool /*wasNew*/) { }
+        virtual void OnSocketClose(std::shared_ptr<WorldSocket> /*socket*/) { }
 
         // Called when a packet is sent to a client. The packet object is a copy of the original packet, so reading
         // and modifying it is safe.
-        virtual void OnPacketSend(WorldSocket* /*socket*/, WorldPacket& /*packet*/) { }
+        virtual void OnPacketSend(WorldSession* /*session*/, WorldPacket& /*packet*/) { }
 
         // Called when a (valid) packet is received by a client. The packet object is a copy of the original packet, so
-        // reading and modifying it is safe.
-        virtual void OnPacketReceive(WorldSocket* /*socket*/, WorldPacket& /*packet*/) { }
+        // reading and modifying it is safe. Make sure to check WorldSession pointer before usage, it might be null in case of auth packets
+        virtual void OnPacketReceive(WorldSession* /*session*/, WorldPacket& /*packet*/) { }
 
         // Called when an invalid (unknown opcode) packet is received by a client. The packet is a reference to the orignal
         // packet; not a copy. This allows you to actually handle unknown packets (for whatever purpose).
-        virtual void OnUnknownPacketReceive(WorldSocket* /*socket*/, WorldPacket& /*packet*/) { }
+        virtual void OnUnknownPacketReceive(WorldSession* /*session*/, WorldPacket& /*packet*/) { }
 };
 
 class WorldScript : public ScriptObject
@@ -314,7 +314,7 @@ template<class TMap> class MapScript : public UpdatableScript<TMap>
             : _mapEntry(sMapStore.LookupEntry(mapId))
         {
             if (!_mapEntry)
-                sLog->outError(LOG_FILTER_TSCR, "Invalid MapScript for %u; no such map ID.", mapId);
+                TC_LOG_ERROR("scripts", "Invalid MapScript for %u; no such map ID.", mapId);
         }
 
     public:
@@ -339,9 +339,6 @@ template<class TMap> class MapScript : public UpdatableScript<TMap>
 
         // Called when a player leaves the map.
         virtual void OnPlayerLeave(TMap* /*map*/, Player* /*player*/) { }
-
-        // Called on every map update tick.
-        virtual void OnUpdate(TMap* /*map*/, uint32 /*diff*/) { }
 };
 
 class WorldMapScript : public ScriptObject, public MapScript<Map>
@@ -359,7 +356,7 @@ class InstanceMapScript : public ScriptObject, public MapScript<InstanceMap>
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Gets an InstanceScript object for this instance.
         virtual InstanceScript* GetInstanceScript(InstanceMap* /*map*/) const { return NULL; }
@@ -380,7 +377,7 @@ class ItemScript : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Called when a dummy spell effect is triggered on the item.
         virtual bool OnDummyEffect(Unit* /*caster*/, uint32 /*spellId*/, SpellEffIndex /*effIndex*/, Item* /*target*/) { return false; }
@@ -393,9 +390,35 @@ class ItemScript : public ScriptObject
 
         // Called when the item expires (is destroyed).
         virtual bool OnExpire(Player* /*player*/, ItemTemplate const* /*proto*/) { return false; }
+
+        // Called when the item is destroyed.
+        virtual bool OnRemove(Player* /*player*/, Item* /*item*/) { return false; }
 };
 
-class CreatureScript : public ScriptObject, public UpdatableScript<Creature>
+class UnitScript : public ScriptObject
+{
+    protected:
+
+        UnitScript(const char* name, bool addToScripts = true);
+
+    public:
+        // Called when a unit deals healing to another unit
+        virtual void OnHeal(Unit* /*healer*/, Unit* /*reciever*/, uint32& /*gain*/) { }
+
+        // Called when a unit deals damage to another unit
+        virtual void OnDamage(Unit* /*attacker*/, Unit* /*victim*/, uint32& /*damage*/) { }
+
+        // Called when DoT's Tick Damage is being Dealt
+        virtual void ModifyPeriodicDamageAurasTick(Unit* /*target*/, Unit* /*attacker*/, uint32& /*damage*/) { }
+
+        // Called when Melee Damage is being Dealt
+        virtual void ModifyMeleeDamage(Unit* /*target*/, Unit* /*attacker*/, uint32& /*damage*/) { }
+
+        // Called when Spell Damage is being Dealt
+        virtual void ModifySpellDamageTaken(Unit* /*target*/, Unit* /*attacker*/, int32& /*damage*/) { }
+};
+
+class CreatureScript : public UnitScript, public UpdatableScript<Creature>
 {
     protected:
 
@@ -403,7 +426,7 @@ class CreatureScript : public ScriptObject, public UpdatableScript<Creature>
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Called when a dummy spell effect is triggered on the creature.
         virtual bool OnDummyEffect(Unit* /*caster*/, uint32 /*spellId*/, SpellEffIndex /*effIndex*/, Creature* /*target*/) { return false; }
@@ -423,14 +446,11 @@ class CreatureScript : public ScriptObject, public UpdatableScript<Creature>
         // Called when a player selects a quest in the creature's quest menu.
         virtual bool OnQuestSelect(Player* /*player*/, Creature* /*creature*/, Quest const* /*quest*/) { return false; }
 
-        // Called when a player completes a quest with the creature.
-        virtual bool OnQuestComplete(Player* /*player*/, Creature* /*creature*/, Quest const* /*quest*/) { return false; }
-
-        // Called when a player selects a quest reward.
+        // Called when a player completes a quest and is rewarded, opt is the selected item's index or 0
         virtual bool OnQuestReward(Player* /*player*/, Creature* /*creature*/, Quest const* /*quest*/, uint32 /*opt*/) { return false; }
 
         // Called when the dialog status between a player and the creature is requested.
-        virtual uint32 GetDialogStatus(Player* /*player*/, Creature* /*creature*/) { return 100; }
+        virtual uint32 GetDialogStatus(Player* /*player*/, Creature* /*creature*/) { return DIALOG_STATUS_SCRIPTED_NO_STATUS; }
 
         // Called when a CreatureAI object is needed for the creature.
         virtual CreatureAI* GetAI(Creature* /*creature*/) const { return NULL; }
@@ -444,7 +464,7 @@ class GameObjectScript : public ScriptObject, public UpdatableScript<GameObject>
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Called when a dummy spell effect is triggered on the gameobject.
         virtual bool OnDummyEffect(Unit* /*caster*/, uint32 /*spellId*/, SpellEffIndex /*effIndex*/, GameObject* /*target*/) { return false; }
@@ -461,11 +481,11 @@ class GameObjectScript : public ScriptObject, public UpdatableScript<GameObject>
         // Called when a player accepts a quest from the gameobject.
         virtual bool OnQuestAccept(Player* /*player*/, GameObject* /*go*/, Quest const* /*quest*/) { return false; }
 
-        // Called when a player selects a quest reward.
+        // Called when a player completes a quest and is rewarded, opt is the selected item's index or 0
         virtual bool OnQuestReward(Player* /*player*/, GameObject* /*go*/, Quest const* /*quest*/, uint32 /*opt*/) { return false; }
 
         // Called when the dialog status between a player and the gameobject is requested.
-        virtual uint32 GetDialogStatus(Player* /*player*/, GameObject* /*go*/) { return 100; }
+        virtual uint32 GetDialogStatus(Player* /*player*/, GameObject* /*go*/) { return DIALOG_STATUS_SCRIPTED_NO_STATUS; }
 
         // Called when the game object is destroyed (destructible buildings only).
         virtual void OnDestroyed(GameObject* /*go*/, Player* /*player*/) { }
@@ -491,7 +511,7 @@ class AreaTriggerScript : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Called when the area trigger is activated by a player.
         virtual bool OnTrigger(Player* /*player*/, AreaTriggerEntry const* /*trigger*/) { return false; }
@@ -505,7 +525,7 @@ class BattlegroundScript : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Should return a fully valid Battleground object for the type ID.
         virtual Battleground* GetBattleground() const = 0;
@@ -519,7 +539,7 @@ class OutdoorPvPScript : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Should return a fully valid OutdoorPvP object for the type ID.
         virtual OutdoorPvP* GetOutdoorPvP() const = 0;
@@ -545,7 +565,7 @@ class WeatherScript : public ScriptObject, public UpdatableScript<Weather>
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Called when the weather changes in the zone this script is associated with.
         virtual void OnChange(Weather* /*weather*/, WeatherState /*state*/, float /*grade*/) { }
@@ -580,7 +600,7 @@ class ConditionScript : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Called when a single condition is checked for a player.
         virtual bool OnConditionCheck(Condition* /*condition*/, ConditionSourceInfo& /*sourceInfo*/) { return true; }
@@ -628,7 +648,7 @@ class TransportScript : public ScriptObject, public UpdatableScript<Transport>
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Called when a player boards the transport.
         virtual void OnAddPassenger(Transport* /*transport*/, Player* /*player*/) { }
@@ -651,13 +671,13 @@ class AchievementCriteriaScript : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return true; }
+        bool IsDatabaseBound() const final override { return true; }
 
         // Called when an additional criteria is checked.
         virtual bool OnCheck(Player* source, Unit* target) = 0;
 };
 
-class PlayerScript : public ScriptObject
+class PlayerScript : public UnitScript
 {
     protected:
 
@@ -674,8 +694,8 @@ class PlayerScript : public ScriptObject
         // Called when a player is killed by a creature
         virtual void OnPlayerKilledByCreature(Creature* /*killer*/, Player* /*killed*/) { }
 
-        // Called when a player's level changes (right before the level is applied)
-        virtual void OnLevelChanged(Player* /*player*/, uint8 /*newLevel*/) { }
+        // Called when a player's level changes (after the level is applied)
+        virtual void OnLevelChanged(Player* /*player*/, uint8 /*oldLevel*/) { }
 
         // Called when a player's free talent points change (right before the change is applied)
         virtual void OnFreeTalentPointsChanged(Player* /*player*/, uint32 /*points*/) { }
@@ -685,6 +705,9 @@ class PlayerScript : public ScriptObject
 
         // Called when a player's money is modified (before the modification is done)
         virtual void OnMoneyChanged(Player* /*player*/, int32& /*amount*/) { }
+
+        // Called when a player's money is at limit (amount = money tried to add)
+        virtual void OnMoneyLimit(Player* /*player*/, int32 /*amount*/) { }
 
         // Called when a player gains XP (before anything is given)
         virtual void OnGiveXP(Player* /*player*/, uint32& /*amount*/, Unit* /*victim*/) { }
@@ -715,13 +738,13 @@ class PlayerScript : public ScriptObject
         // Both of the below are called on emote opcodes.
         virtual void OnEmote(Player* /*player*/, uint32 /*emote*/) { }
 
-        virtual void OnTextEmote(Player* /*player*/, uint32 /*textEmote*/, uint32 /*emoteNum*/, uint64 /*guid*/) { }
+        virtual void OnTextEmote(Player* /*player*/, uint32 /*textEmote*/, uint32 /*emoteNum*/, ObjectGuid /*guid*/) { }
 
         // Called in Spell::Cast.
         virtual void OnSpellCast(Player* /*player*/, Spell* /*spell*/, bool /*skipCheck*/) { }
 
         // Called when a player logs in.
-        virtual void OnLogin(Player* /*player*/) { }
+        virtual void OnLogin(Player* /*player*/, bool /*firstLogin*/) { }
 
         // Called when a player logs out.
         virtual void OnLogout(Player* /*player*/) { }
@@ -730,13 +753,52 @@ class PlayerScript : public ScriptObject
         virtual void OnCreate(Player* /*player*/) { }
 
         // Called when a player is deleted.
-        virtual void OnDelete(uint64 /*guid*/) { }
+        virtual void OnDelete(ObjectGuid /*guid*/, uint32 /*accountId*/) { }
+
+        // Called when a player delete failed
+        virtual void OnFailedDelete(ObjectGuid /*guid*/, uint32 /*accountId*/) { }
+
+        // Called when a player is about to be saved.
+        virtual void OnSave(Player* /*player*/) { }
 
         // Called when a player is bound to an instance
         virtual void OnBindToInstance(Player* /*player*/, Difficulty /*difficulty*/, uint32 /*mapId*/, bool /*permanent*/) { }
 
         // Called when a player switches to a new zone
         virtual void OnUpdateZone(Player* /*player*/, uint32 /*newZone*/, uint32 /*newArea*/) { }
+
+        // Called when a player changes to a new map (after moving to new map)
+        virtual void OnMapChanged(Player* /*player*/) { }
+
+        // Called after a player's quest status has been changed
+        virtual void OnQuestStatusChange(Player* /*player*/, uint32 /*questId*/, QuestStatus /*status*/) { }
+};
+
+class AccountScript : public ScriptObject
+{
+    protected:
+
+        AccountScript(const char* name);
+
+    public:
+
+        // Called when an account logged in succesfully
+        virtual void OnAccountLogin(uint32 /*accountId*/) {}
+
+        // Called when an account login failed
+        virtual void OnFailedAccountLogin(uint32 /*accountId*/) {}
+
+        // Called when Email is successfully changed for Account
+        virtual void OnEmailChange(uint32 /*accountId*/) {}
+
+        // Called when Email failed to change for Account
+        virtual void OnFailedEmailChange(uint32 /*accountId*/) {}
+
+        // Called when Password is successfully changed for Account
+        virtual void OnPasswordChange(uint32 /*accountId*/) {}
+
+        // Called when Password failed to change for Account
+        virtual void OnFailedPasswordChange(uint32 /*accountId*/) {}
 };
 
 class GuildScript : public ScriptObject
@@ -747,7 +809,7 @@ class GuildScript : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return false; }
+        bool IsDatabaseBound() const final override { return false; }
 
         // Called when a member is added to the guild.
         virtual void OnAddMember(Guild* /*guild*/, Player* /*player*/, uint8& /*plRank*/) { }
@@ -790,39 +852,51 @@ class GroupScript : public ScriptObject
 
     public:
 
-        bool IsDatabaseBound() const { return false; }
+        bool IsDatabaseBound() const final override { return false; }
 
         // Called when a member is added to a group.
-        virtual void OnAddMember(Group* /*group*/, uint64 /*guid*/) { }
+        virtual void OnAddMember(Group* /*group*/, ObjectGuid /*guid*/) { }
 
         // Called when a member is invited to join a group.
-        virtual void OnInviteMember(Group* /*group*/, uint64 /*guid*/) { }
+        virtual void OnInviteMember(Group* /*group*/, ObjectGuid /*guid*/) { }
 
         // Called when a member is removed from a group.
-        virtual void OnRemoveMember(Group* /*group*/, uint64 /*guid*/, RemoveMethod /*method*/, uint64 /*kicker*/, const char* /*reason*/) { }
+        virtual void OnRemoveMember(Group* /*group*/, ObjectGuid /*guid*/, RemoveMethod /*method*/, ObjectGuid /*kicker*/, const char* /*reason*/) { }
 
         // Called when the leader of a group is changed.
-        virtual void OnChangeLeader(Group* /*group*/, uint64 /*newLeaderGuid*/, uint64 /*oldLeaderGuid*/) { }
+        virtual void OnChangeLeader(Group* /*group*/, ObjectGuid /*newLeaderGuid*/, ObjectGuid /*oldLeaderGuid*/) { }
 
         // Called when a group is disbanded.
         virtual void OnDisband(Group* /*group*/) { }
 };
 
 // Placed here due to ScriptRegistry::AddScript dependency.
-#define sScriptMgr ACE_Singleton<ScriptMgr, ACE_Null_Mutex>::instance()
+#define sScriptMgr ScriptMgr::instance()
+
+// namespace
+// {
+    typedef std::vector<ScriptObject*> UnusedScriptContainer;
+    typedef std::list<std::string> UnusedScriptNamesContainer;
+
+    extern UnusedScriptContainer UnusedScripts;
+    extern UnusedScriptNamesContainer UnusedScriptNames;
+// }
 
 // Manages registration, loading, and execution of scripts.
 class ScriptMgr
 {
-    friend class ACE_Singleton<ScriptMgr, ACE_Null_Mutex>;
     friend class ScriptObject;
 
     private:
-
         ScriptMgr();
         virtual ~ScriptMgr();
 
     public: /* Initialization */
+        static ScriptMgr* instance()
+        {
+            static ScriptMgr instance;
+            return &instance;
+        }
 
         void Initialize();
         void LoadDatabase();
@@ -836,6 +910,7 @@ class ScriptMgr
     public: /* Unloading */
 
         void Unload();
+        void UnloadUnusedScripts();
 
     public: /* SpellScriptLoader */
 
@@ -847,11 +922,11 @@ class ScriptMgr
 
         void OnNetworkStart();
         void OnNetworkStop();
-        void OnSocketOpen(WorldSocket* socket);
-        void OnSocketClose(WorldSocket* socket, bool wasNew);
-        void OnPacketReceive(WorldSocket* socket, WorldPacket packet);
-        void OnPacketSend(WorldSocket* socket, WorldPacket packet);
-        void OnUnknownPacketReceive(WorldSocket* socket, WorldPacket packet);
+        void OnSocketOpen(std::shared_ptr<WorldSocket> socket);
+        void OnSocketClose(std::shared_ptr<WorldSocket> socket);
+        void OnPacketReceive(WorldSession* session, WorldPacket const& packet);
+        void OnPacketSend(WorldSession* session, WorldPacket const& packet);
+        void OnUnknownPacketReceive(WorldSession* session, WorldPacket const& packet);
 
     public: /* WorldScript */
 
@@ -894,6 +969,7 @@ class ScriptMgr
         bool OnQuestAccept(Player* player, Item* item, Quest const* quest);
         bool OnItemUse(Player* player, Item* item, SpellCastTargets const& targets);
         bool OnItemExpire(Player* player, ItemTemplate const* proto);
+        bool OnItemRemove(Player* player, Item* item);
 
     public: /* CreatureScript */
 
@@ -903,7 +979,6 @@ class ScriptMgr
         bool OnGossipSelectCode(Player* player, Creature* creature, uint32 sender, uint32 action, const char* code);
         bool OnQuestAccept(Player* player, Creature* creature, Quest const* quest);
         bool OnQuestSelect(Player* player, Creature* creature, Quest const* quest);
-        bool OnQuestComplete(Player* player, Creature* creature, Quest const* quest);
         bool OnQuestReward(Player* player, Creature* creature, Quest const* quest, uint32 opt);
         uint32 GetDialogStatus(Player* player, Creature* creature);
         CreatureAI* GetCreatureAI(Creature* creature);
@@ -980,7 +1055,7 @@ class ScriptMgr
 
     public: /* AchievementCriteriaScript */
 
-        bool OnCriteriaCheck(AchievementCriteriaData const* data, Player* source, Unit* target);
+        bool OnCriteriaCheck(uint32 scriptId, Player* source, Unit* target);
 
     public: /* PlayerScript */
 
@@ -991,6 +1066,7 @@ class ScriptMgr
         void OnPlayerFreeTalentPointsChanged(Player* player, uint32 newPoints);
         void OnPlayerTalentsReset(Player* player, bool noCost);
         void OnPlayerMoneyChanged(Player* player, int32& amount);
+        void OnPlayerMoneyLimit(Player* player, int32 amount);
         void OnGivePlayerXP(Player* player, uint32& amount, Unit* victim);
         void OnPlayerReputationChange(Player* player, uint32 factionID, int32& standing, bool incremental);
         void OnPlayerDuelRequest(Player* target, Player* challenger);
@@ -1002,14 +1078,26 @@ class ScriptMgr
         void OnPlayerChat(Player* player, uint32 type, uint32 lang, std::string& msg, Guild* guild);
         void OnPlayerChat(Player* player, uint32 type, uint32 lang, std::string& msg, Channel* channel);
         void OnPlayerEmote(Player* player, uint32 emote);
-        void OnPlayerTextEmote(Player* player, uint32 textEmote, uint32 emoteNum, uint64 guid);
+        void OnPlayerTextEmote(Player* player, uint32 textEmote, uint32 emoteNum, ObjectGuid guid);
         void OnPlayerSpellCast(Player* player, Spell* spell, bool skipCheck);
-        void OnPlayerLogin(Player* player);
+        void OnPlayerLogin(Player* player, bool firstLogin);
         void OnPlayerLogout(Player* player);
         void OnPlayerCreate(Player* player);
-        void OnPlayerDelete(uint64 guid);
+        void OnPlayerDelete(ObjectGuid guid, uint32 accountId);
+        void OnPlayerFailedDelete(ObjectGuid guid, uint32 accountId);
+        void OnPlayerSave(Player* player);
         void OnPlayerBindToInstance(Player* player, Difficulty difficulty, uint32 mapid, bool permanent);
         void OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 newArea);
+        void OnQuestStatusChange(Player* player, uint32 questId, QuestStatus status);
+
+    public: /* AccountScript */
+
+        void OnAccountLogin(uint32 accountId);
+        void OnFailedAccountLogin(uint32 accountId);
+        void OnEmailChange(uint32 accountId);
+        void OnFailedEmailChange(uint32 accountId);
+        void OnPasswordChange(uint32 accountId);
+        void OnFailedPasswordChange(uint32 accountId);
 
     public: /* GuildScript */
 
@@ -1028,11 +1116,19 @@ class ScriptMgr
 
     public: /* GroupScript */
 
-        void OnGroupAddMember(Group* group, uint64 guid);
-        void OnGroupInviteMember(Group* group, uint64 guid);
-        void OnGroupRemoveMember(Group* group, uint64 guid, RemoveMethod method, uint64 kicker, const char* reason);
-        void OnGroupChangeLeader(Group* group, uint64 newLeaderGuid, uint64 oldLeaderGuid);
+        void OnGroupAddMember(Group* group, ObjectGuid guid);
+        void OnGroupInviteMember(Group* group, ObjectGuid guid);
+        void OnGroupRemoveMember(Group* group, ObjectGuid guid, RemoveMethod method, ObjectGuid kicker, const char* reason);
+        void OnGroupChangeLeader(Group* group, ObjectGuid newLeaderGuid, ObjectGuid oldLeaderGuid);
         void OnGroupDisband(Group* group);
+
+    public: /* UnitScript */
+
+        void OnHeal(Unit* healer, Unit* reciever, uint32& gain);
+        void OnDamage(Unit* attacker, Unit* victim, uint32& damage);
+        void ModifyPeriodicDamageAurasTick(Unit* target, Unit* attacker, uint32& damage);
+        void ModifyMeleeDamage(Unit* target, Unit* attacker, uint32& damage);
+        void ModifySpellDamageTaken(Unit* target, Unit* attacker, int32& damage);
 
     public: /* Scheduled scripts */
 
@@ -1046,7 +1142,7 @@ class ScriptMgr
         uint32 _scriptCount;
 
         //atomic op counter for active scripts amount
-        ACE_Atomic_Op<ACE_Thread_Mutex, long> _scheduledScripts;
+        std::atomic<uint32> _scheduledScripts;
 };
 
 #endif

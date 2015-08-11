@@ -30,10 +30,12 @@ Using diff:
 After compiling:
 - Navigate to `\src\server\scripts\Custom\objscale\sql\`
 - Run `world.sql` to your world database
+- Run `auth.sql` to your auth database
 
 ####Usage
-You can set the sizes in the `creature` and `gameobject` database tables in the world database by changing the size column.
+You can set the sizes in the `creature` and `gameobject` database tables in the world database by changing the `size` column.
 In game you can change a spawned object's size by using `.gobject set scale #guid #scale` and spawned NPC sizes by selecting an NPC and using `.npc set scale #scale`
+Using -1 has scale makes the gameobject and npc use the default scale from template.
 
 ####Bugs and Contact
 Report issues and similar to https://rochet2.github.io/

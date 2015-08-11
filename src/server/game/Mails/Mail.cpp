@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -22,10 +22,10 @@
 #include "World.h"
 #include "ObjectMgr.h"
 #include "Player.h"
-#include "Unit.h"
 #include "BattlegroundMgr.h"
 #include "Item.h"
 #include "AuctionHouseMgr.h"
+#include "CalendarMgr.h"
 
 MailSender::MailSender(Object* sender, MailStationery stationery) : m_stationery(stationery)
 {
@@ -39,10 +39,10 @@ MailSender::MailSender(Object* sender, MailStationery stationery) : m_stationery
             m_messageType = MAIL_GAMEOBJECT;
             m_senderId = sender->GetEntry();
             break;
-        case TYPEID_ITEM:
+        /*case TYPEID_ITEM:
             m_messageType = MAIL_ITEM;
             m_senderId = sender->GetEntry();
-            break;
+            break;*/
         case TYPEID_PLAYER:
             m_messageType = MAIL_NORMAL;
             m_senderId = sender->GetGUIDLow();
@@ -50,26 +50,27 @@ MailSender::MailSender(Object* sender, MailStationery stationery) : m_stationery
         default:
             m_messageType = MAIL_NORMAL;
             m_senderId = 0;                                 // will show mail from not existed player
-            sLog->outError(LOG_FILTER_GENERAL, "MailSender::MailSender - Mail have unexpected sender typeid (%u)", sender->GetTypeId());
+            TC_LOG_ERROR("misc", "MailSender::MailSender - Mail have unexpected sender typeid (%u)", sender->GetTypeId());
             break;
     }
 }
 
-MailSender::MailSender(AuctionEntry* sender)
-    : m_messageType(MAIL_AUCTION), m_senderId(sender->GetHouseId()), m_stationery(MAIL_STATIONERY_AUCTION)
+MailSender::MailSender(CalendarEvent* sender)
+    : m_messageType(MAIL_CALENDAR), m_senderId(sender->GetEventId()), m_stationery(MAIL_STATIONERY_DEFAULT) // what stationery we should use here?
 {
 }
+
+MailSender::MailSender(AuctionEntry* sender)
+    : m_messageType(MAIL_AUCTION), m_senderId(sender->GetHouseId()), m_stationery(MAIL_STATIONERY_AUCTION) { }
 
 MailSender::MailSender(Player* sender)
 {
     m_messageType = MAIL_NORMAL;
-    m_stationery = sender->isGameMaster() ? MAIL_STATIONERY_GM : MAIL_STATIONERY_DEFAULT;
+    m_stationery = sender->IsGameMaster() ? MAIL_STATIONERY_GM : MAIL_STATIONERY_DEFAULT;
     m_senderId = sender->GetGUIDLow();
 }
 
-MailReceiver::MailReceiver(Player* receiver) : m_receiver(receiver), m_receiver_lowguid(receiver->GetGUIDLow())
-{
-}
+MailReceiver::MailReceiver(Player* receiver) : m_receiver(receiver), m_receiver_lowguid(receiver->GetGUIDLow()) { }
 
 MailReceiver::MailReceiver(Player* receiver, uint32 receiver_lowguid) : m_receiver(receiver), m_receiver_lowguid(receiver_lowguid)
 {
@@ -128,11 +129,12 @@ void MailDraft::deleteIncludedItems(SQLTransaction& trans, bool inDB /*= false*/
 
 void MailDraft::SendReturnToSender(uint32 sender_acc, uint32 sender_guid, uint32 receiver_guid, SQLTransaction& trans)
 {
-    Player* receiver = ObjectAccessor::FindPlayer(MAKE_NEW_GUID(receiver_guid, 0, HIGHGUID_PLAYER));
+    ObjectGuid receiverGuid(HIGHGUID_PLAYER, receiver_guid);
+    Player* receiver = ObjectAccessor::FindConnectedPlayer(receiverGuid);
 
     uint32 rc_account = 0;
     if (!receiver)
-        rc_account = sObjectMgr->GetPlayerAccountIdByGUID(MAKE_NEW_GUID(receiver_guid, 0, HIGHGUID_PLAYER));
+        rc_account = sObjectMgr->GetPlayerAccountIdByGUID(receiverGuid);
 
     if (!receiver && !rc_account)                            // sender not exist
     {
@@ -191,10 +193,12 @@ void MailDraft::SendMailTo(SQLTransaction& trans, MailReceiver const& receiver, 
         expire_delay = DAY;
      // default case: expire time if COD 3 days, if no COD 30 days (or 90 days if sender is a game master)
     else
+    {
         if (m_COD)
             expire_delay = 3 * DAY;
         else
-            expire_delay = pSender && pSender->isGameMaster() ? 90 * DAY : 30 * DAY;
+            expire_delay = pSender && pSender->IsGameMaster() ? 90 * DAY : 30 * DAY;
+    }
 
     time_t expire_time = deliver_time + expire_delay;
 

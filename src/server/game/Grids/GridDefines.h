@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2012 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -35,7 +35,7 @@ class Player;
 
 #define MAX_NUMBER_OF_GRIDS      64
 
-#define SIZE_OF_GRIDS            533.33333f
+#define SIZE_OF_GRIDS            533.3333f
 #define CENTER_GRID_ID           (MAX_NUMBER_OF_GRIDS/2)
 
 #define CENTER_GRID_OFFSET      (SIZE_OF_GRIDS/2)
@@ -85,14 +85,12 @@ template<uint32 LIMIT>
 struct CoordPair
 {
     CoordPair(uint32 x=0, uint32 y=0)
-        : x_coord(x)
-        , y_coord(y)
-    {}
+        : x_coord(x), y_coord(y)
+    { }
 
     CoordPair(const CoordPair<LIMIT> &obj)
-        : x_coord(obj.x_coord)
-        , y_coord(obj.y_coord)
-    {}
+        : x_coord(obj.x_coord), y_coord(obj.y_coord)
+    { }
 
     CoordPair<LIMIT> & operator=(const CoordPair<LIMIT> &obj)
     {
@@ -200,8 +198,8 @@ namespace Trinity
 
         int x_val = int(x_offset + CENTER_GRID_CELL_ID + 0.5f);
         int y_val = int(y_offset + CENTER_GRID_CELL_ID + 0.5f);
-        x_off = (float(x_offset) - x_val + CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL;
-        y_off = (float(y_offset) - y_val + CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL;
+        x_off = (float(x_offset) - float(x_val) + CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL;
+        y_off = (float(y_offset) - float(y_val) + CENTER_GRID_CELL_ID) * SIZE_OF_GRID_CELL;
         return CellCoord(x_val, y_val);
     }
 
@@ -215,7 +213,7 @@ namespace Trinity
 
     inline bool IsValidMapCoord(float c)
     {
-        return finite(c) && (std::fabs(c) <= MAP_HALFSIZE - 0.5f);
+        return std::isfinite(c) && (std::fabs(c) <= MAP_HALFSIZE - 0.5f);
     }
 
     inline bool IsValidMapCoord(float x, float y)
@@ -225,12 +223,12 @@ namespace Trinity
 
     inline bool IsValidMapCoord(float x, float y, float z)
     {
-        return IsValidMapCoord(x, y) && finite(z);
+        return IsValidMapCoord(x, y) && std::isfinite(z);
     }
 
     inline bool IsValidMapCoord(float x, float y, float z, float o)
     {
-        return IsValidMapCoord(x, y, z) && finite(o);
+        return IsValidMapCoord(x, y, z) && std::isfinite(o);
     }
 }
 #endif
