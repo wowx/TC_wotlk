@@ -4,7 +4,7 @@
 Objscale allows you to set a size for specific gameobjects and creatures of an entry.
 You can do this change ingame with commands or in the `creature` and `gameobject` database tables.
 Made for 3.3.5a.<br />
-Source: http://rochet2.github.io/
+Source: http://rochet2.github.io/Objscale.html
 
 ####Installation
 
