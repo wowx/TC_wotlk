@@ -1,7 +1,7 @@
 #Objscale [![Build Status](https://travis-ci.org/Rochet2/TrinityCore.svg?branch=objscale)](https://travis-ci.org/Rochet2/TrinityCore)
 
 ####About
-Objscale allows you to set a size for specific gameobjects and creatures of an entry.
+Objscale allows scaling individual spawns of creatures and gameobjects.
 You can do this change ingame with commands or in the `creature` and `gameobject` database tables.
 Made for 3.3.5a.<br />
 Source: http://rochet2.github.io/Objscale.html
