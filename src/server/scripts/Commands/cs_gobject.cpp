@@ -46,6 +46,7 @@ public:
         {
             { "phase",          SEC_GAMEMASTER,     false, &HandleGameObjectSetPhaseCommand,  "", NULL },
             { "state",          SEC_GAMEMASTER,     false, &HandleGameObjectSetStateCommand,  "", NULL },
+            { "scale",          SEC_GAMEMASTER,     false, &HandleGameObjectScaleCommand,     "", NULL },
             { NULL,             0,                  false, NULL,                              "", NULL }
         };
         static ChatCommand gobjectCommandTable[] =
@@ -67,6 +68,50 @@ public:
             { NULL,             0,                  false, NULL,                               "", NULL }
         };
         return commandTable;
+    }
+
+    static bool HandleGameObjectScaleCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+            return false;
+
+        char* id = handler->extractKeyFromLink((char*)args, "Hgameobject");
+        if (!id)
+            return false;
+
+        uint32 guidLow = atoi(id);
+        if (!guidLow)
+            return false;
+
+        GameObject* object = NULL;
+
+        // by DB guid
+        if (GameObjectData const* goData = sObjectMgr->GetGOData(guidLow))
+            object = handler->GetObjectGlobalyWithGuidOrNearWithDbGuid(guidLow, goData->id);
+
+        if (!object)
+        {
+            handler->PSendSysMessage(LANG_COMMAND_OBJNOTFOUND, guidLow);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        char* scale_temp = strtok (NULL, " ");
+        float scale = scale_temp ? atof(scale_temp) : -1.0f;
+        if (scale > 30.0f || scale < 0.0f)
+        {
+            handler->SendSysMessage(LANG_BAD_VALUE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        // set scale
+        object->SetObjectScale(scale);
+        object->DestroyForNearbyPlayers();
+        object->UpdateObjectVisibility();
+        object->SaveToDB();
+
+        return true;
     }
 
     static bool HandleGameObjectActivateCommand(ChatHandler* handler, char const* args)

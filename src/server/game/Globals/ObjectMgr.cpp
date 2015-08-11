@@ -1389,6 +1389,7 @@ void ObjectMgr::LoadCreatures()
     QueryResult result = WorldDatabase.Query("SELECT creature.guid, id, map, modelid, equipment_id, position_x, position_y, position_z, orientation, spawntimesecs, spawndist, "
     //   11               12         13       14            15         16         17          18          19                20                   21
         "currentwaypoint, curhealth, curmana, MovementType, spawnMask, phaseMask, eventEntry, pool_entry, creature.npcflag, creature.unit_flags, creature.dynamicflags "
+        ",size " // 22
         "FROM creature "
         "LEFT OUTER JOIN game_event_creature ON creature.guid = game_event_creature.guid "
         "LEFT OUTER JOIN pool_creature ON creature.guid = pool_creature.guid");
@@ -1446,6 +1447,7 @@ void ObjectMgr::LoadCreatures()
         data.npcflag        = fields[19].GetUInt32();
         data.unit_flags     = fields[20].GetUInt32();
         data.dynamicflags   = fields[21].GetUInt32();
+        data.size           = fields[22].GetFloat();
 
         MapEntry const* mapEntry = sMapStore.LookupEntry(data.mapid);
         if (!mapEntry)
@@ -1512,6 +1514,12 @@ void ObjectMgr::LoadCreatures()
         {
             sLog->outError(LOG_FILTER_SQL, "Table `creature` have creature (GUID: %u Entry: %u) with `phaseMask`=0 (not visible for anyone), set to 1.", guid, data.id);
             data.phaseMask = 1;
+        }
+
+        if (data.size > 10.0f || data.size < 0.1f)
+        {
+            sLog->outError(LOG_FILTER_SQL, "Table `creature` have creature (GUID: %u Entry: %u) with `size` > 10.0f or `size` > 0.1 (not in valid range), set to 1.", guid, data.id);
+            data.size = 1;
         }
 
         // Add to grid if not managed by the game event or pool system
@@ -1699,6 +1707,7 @@ void ObjectMgr::LoadGameobjects()
     QueryResult result = WorldDatabase.Query("SELECT gameobject.guid, id, map, position_x, position_y, position_z, orientation, "
     //   7          8          9          10         11             12            13     14         15         16          17
         "rotation0, rotation1, rotation2, rotation3, spawntimesecs, animprogress, state, spawnMask, phaseMask, eventEntry, pool_entry "
+        ",size " // 18
         "FROM gameobject LEFT OUTER JOIN game_event_gameobject ON gameobject.guid = game_event_gameobject.guid "
         "LEFT OUTER JOIN pool_gameobject ON gameobject.guid = pool_gameobject.guid");
 
@@ -1796,6 +1805,13 @@ void ObjectMgr::LoadGameobjects()
         data.phaseMask      = fields[15].GetUInt16();
         int16 gameEvent     = fields[16].GetInt8();
         uint32 PoolId        = fields[17].GetUInt32();
+        data.size           = fields[18].GetFloat();
+
+        if (data.size > 30.0f || data.size < 0.0f)
+        {
+            sLog->outError(LOG_FILTER_SQL, "Table `gameobject` has gameobject (GUID: %u Entry: %u) with invalid size (%f) value, skip", guid, data.id, data.size);
+            continue;
+        }
 
         if (data.rotation2 < -1.0f || data.rotation2 > 1.0f)
         {

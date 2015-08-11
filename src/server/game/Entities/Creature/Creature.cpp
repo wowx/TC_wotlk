@@ -333,6 +333,9 @@ bool Creature::InitEntry(uint32 Entry, uint32 /*team*/, const CreatureData* data
     SetSpeed(MOVE_SWIM, 1.0f);      // using 1.0 rate
     SetSpeed(MOVE_FLIGHT, 1.0f);    // using 1.0 rate
 
+    if(data)
+        SetObjectScale(data->size);
+    else
     SetObjectScale(cinfo->scale);
 
     SetFloatValue(UNIT_FIELD_HOVERHEIGHT, cinfo->HoverHeight);
@@ -1099,6 +1102,7 @@ void Creature::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
     data.npcflag = npcflag;
     data.unit_flags = unit_flags;
     data.dynamicflags = dynamicflags;
+    data.size = GetFloatValue(OBJECT_FIELD_SCALE_X);
 
     // update in DB
     SQLTransaction trans = WorldDatabase.BeginTransaction();
@@ -1130,6 +1134,7 @@ void Creature::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
     stmt->setUInt32(index++, npcflag);
     stmt->setUInt32(index++, unit_flags);
     stmt->setUInt32(index++, dynamicflags);
+    stmt->setFloat(index++, GetFloatValue(OBJECT_FIELD_SCALE_X));
     trans->Append(stmt);
 
     WorldDatabase.CommitTransaction(trans);

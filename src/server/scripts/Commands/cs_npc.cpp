@@ -66,6 +66,7 @@ public:
             { "allowmove",      SEC_ADMINISTRATOR,  false, &HandleNpcSetAllowMovementCommand,  "", NULL },
             { "entry",          SEC_ADMINISTRATOR,  false, &HandleNpcSetEntryCommand,          "", NULL },
             { "factionid",      SEC_GAMEMASTER,     false, &HandleNpcSetFactionIdCommand,      "", NULL },
+            { "scale",          SEC_GAMEMASTER,     false, &HandleNpcSetScaleCommand,          "", NULL },
             { "flag",           SEC_GAMEMASTER,     false, &HandleNpcSetFlagCommand,           "", NULL },
             { "level",          SEC_GAMEMASTER,     false, &HandleNpcSetLevelCommand,          "", NULL },
             { "link",           SEC_GAMEMASTER,     false, &HandleNpcSetLinkCommand,           "", NULL },
@@ -103,6 +104,31 @@ public:
             { NULL,             0,                  false, NULL,                               "", NULL }
         };
         return commandTable;
+    }
+
+    static bool HandleNpcSetScaleCommand(ChatHandler* handler, const char* args)
+    {
+        if (!*args)
+            return false;
+
+        float Scale = (float)atof((char*)args);
+        if (Scale > 10.0f || Scale < 0.1f)
+        {
+            handler->SendSysMessage(LANG_BAD_VALUE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        Creature* creature = handler->getSelectedCreature();
+        if (!creature || creature->isPet())
+        {
+            handler->SendSysMessage(LANG_SELECT_CREATURE);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        creature->SetObjectScale(Scale);
+        creature->SaveToDB();
     }
 
     //add spawn of creature
