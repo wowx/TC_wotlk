@@ -1290,7 +1290,7 @@ void GameObject::Use(Unit* user)
             for (ChairSlotAndUser::iterator itr = ChairListSlots.begin(); itr != ChairListSlots.end(); ++itr)
             {
                 // the distance between this slot and the center of the go - imagine a 1D space
-                float relativeDistance = (GetObjectSize()*itr->first)-(GetObjectSize()*(info->chair.slots-1)/2.0f);
+                float relativeDistance = (GetObjectScale()*itr->first)-(GetObjectScale()*(info->chair.slots-1)/2.0f);
 
                 float x_i = GetPositionX() + relativeDistance * std::cos(orthogonalOrientation);
                 float y_i = GetPositionY() + relativeDistance * std::sin(orthogonalOrientation);
