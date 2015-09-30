@@ -31,10 +31,7 @@
 #include "Unit.h"
 #include "Opcodes.h"
 #include "WorldSession.h"
-
-#include <limits>
-#include <string>
-#include <vector>
+#include "PlayerTaxi.h"
 
 struct CreatureTemplate;
 struct Mail;
@@ -645,15 +642,16 @@ enum PlayerExtraFlags
 // 2^n values
 enum AtLoginFlags
 {
-    AT_LOGIN_NONE              = 0x00,
-    AT_LOGIN_RENAME            = 0x01,
-    AT_LOGIN_RESET_SPELLS      = 0x02,
-    AT_LOGIN_RESET_TALENTS     = 0x04,
-    AT_LOGIN_CUSTOMIZE         = 0x08,
-    AT_LOGIN_RESET_PET_TALENTS = 0x10,
-    AT_LOGIN_FIRST             = 0x20,
-    AT_LOGIN_CHANGE_FACTION    = 0x40,
-    AT_LOGIN_CHANGE_RACE       = 0x80
+    AT_LOGIN_NONE              = 0x000,
+    AT_LOGIN_RENAME            = 0x001,
+    AT_LOGIN_RESET_SPELLS      = 0x002,
+    AT_LOGIN_RESET_TALENTS     = 0x004,
+    AT_LOGIN_CUSTOMIZE         = 0x008,
+    AT_LOGIN_RESET_PET_TALENTS = 0x010,
+    AT_LOGIN_FIRST             = 0x020,
+    AT_LOGIN_CHANGE_FACTION    = 0x040,
+    AT_LOGIN_CHANGE_RACE       = 0x080,
+    AT_LOGIN_RESURRECT         = 0x100,
 };
 
 typedef std::map<uint32, QuestStatusData> QuestStatusMap;
@@ -910,12 +908,11 @@ enum ArenaTeamInfoType
 
 class InstanceSave;
 
-enum RestType
+enum RestFlag
 {
-    REST_TYPE_NO                = 0,
-    REST_TYPE_IN_TAVERN         = 1,
-    REST_TYPE_IN_CITY           = 2,
-    REST_TYPE_IN_FACTION_AREA   = 3     // used with AREA_FLAG_REST_ZONE_*
+    REST_FLAG_IN_TAVERN         = 0x1,
+    REST_FLAG_IN_CITY           = 0x2,
+    REST_FLAG_IN_FACTION_AREA   = 0x4, // used with AREA_FLAG_REST_ZONE_*
 };
 
 enum TeleportToOptions
@@ -990,6 +987,7 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOAD_VOID_STORAGE,
     PLAYER_LOGIN_QUERY_LOAD_CURRENCY,
     PLAYER_LOGIN_QUERY_LOAD_CUF_PROFILES,
+    PLAYER_LOGIN_QUERY_LOAD_CORPSE_LOCATION,
     PLAYER_LOGIN_QUERY_LOAD_GARRISON,
     PLAYER_LOGIN_QUERY_LOAD_GARRISON_BLUEPRINTS,
     PLAYER_LOGIN_QUERY_LOAD_GARRISON_BUILDINGS,
@@ -1085,59 +1083,6 @@ enum PlayerLogXPReason
     LOG_XP_REASON_KILL    = 0,
     LOG_XP_REASON_NO_KILL = 1
 };
-
-class PlayerTaxi
-{
-    public:
-        PlayerTaxi();
-        ~PlayerTaxi() { }
-        // Nodes
-        void InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 level);
-        void LoadTaxiMask(std::string const& data);
-
-        bool IsTaximaskNodeKnown(uint32 nodeidx) const
-        {
-            uint8  field   = uint8((nodeidx - 1) / 8);
-            uint32 submask = 1 << ((nodeidx-1) % 8);
-            return (m_taximask[field] & submask) == submask;
-        }
-        bool SetTaximaskNode(uint32 nodeidx)
-        {
-            uint8  field   = uint8((nodeidx - 1) / 8);
-            uint32 submask = 1 << ((nodeidx-  1) % 8);
-            if ((m_taximask[field] & submask) != submask)
-            {
-                m_taximask[field] |= submask;
-                return true;
-            }
-            else
-                return false;
-        }
-        void AppendTaximaskTo(ByteBuffer& data, bool all);
-
-        // Destinations
-        bool LoadTaxiDestinationsFromString(std::string const& values, uint32 team);
-        std::string SaveTaxiDestinationsToString();
-
-        void ClearTaxiDestinations() { m_TaxiDestinations.clear(); }
-        void AddTaxiDestination(uint32 dest) { m_TaxiDestinations.push_back(dest); }
-        uint32 GetTaxiSource() const { return m_TaxiDestinations.empty() ? 0 : m_TaxiDestinations.front(); }
-        uint32 GetTaxiDestination() const { return m_TaxiDestinations.size() < 2 ? 0 : m_TaxiDestinations[1]; }
-        uint32 GetCurrentTaxiPath() const;
-        uint32 NextTaxiDestination()
-        {
-            m_TaxiDestinations.pop_front();
-            return GetTaxiDestination();
-        }
-        bool empty() const { return m_TaxiDestinations.empty(); }
-
-        friend std::ostringstream& operator<< (std::ostringstream& ss, PlayerTaxi const& taxi);
-    private:
-        TaxiMask m_taximask;
-        std::deque<uint32> m_TaxiDestinations;
-};
-
-std::ostringstream& operator << (std::ostringstream& ss, PlayerTaxi const& taxi);
 
 class Player;
 
@@ -1362,6 +1307,7 @@ class Player : public Unit, public GridObject<Player>
 
         bool IsInWater() const override { return m_isInWater; }
         bool IsUnderWater() const override;
+        bool IsInAreaTriggerRadius(const AreaTriggerEntry* trigger) const;
 
         void SendInitialPacketsBeforeAddToMap();
         void SendInitialPacketsAfterAddToMap();
@@ -1423,21 +1369,15 @@ class Player : public Unit, public GridObject<Player>
 
         void setDeathState(DeathState s) override;                   // overwrite Unit::setDeathState
 
-        void InnEnter(time_t time, uint32 mapid, float x, float y, float z);
-
         float GetRestBonus() const { return m_rest_bonus; }
         void SetRestBonus(float rest_bonus_new);
 
-        RestType GetRestType() const { return rest_type; }
-        void SetRestType(RestType n_r_type) { rest_type = n_r_type; }
+        bool HasRestFlag(RestFlag restFlag) const { return (_restFlagMask & restFlag) != 0; }
+        void SetRestFlag(RestFlag restFlag, uint32 triggerId = 0);
+        void RemoveRestFlag(RestFlag restFlag);
 
-        uint32 GetInnPosMapId() const { return inn_pos_mapid; }
-        float GetInnPosX() const { return inn_pos_x; }
-        float GetInnPosY() const { return inn_pos_y; }
-        float GetInnPosZ() const { return inn_pos_z; }
-
-        time_t GetTimeInnEnter() const { return time_inn_enter; }
-        void UpdateInnerTime (time_t time) { time_inn_enter = time; }
+        uint32 GetXPRestBonus(uint32 xp);
+        uint32 GetInnTriggerId() const { return inn_triggerId; }
 
         Pet* GetPet() const;
         Pet* SummonPet(uint32 entry, float x, float y, float z, float ang, PetType petType, uint32 despwtime);
@@ -1470,7 +1410,7 @@ class Player : public Unit, public GridObject<Player>
         Bag*  GetBagByPos(uint8 slot) const;
         Item* GetWeaponForAttack(WeaponAttackType attackType, bool useable = false) const;
         Item* GetShield(bool useable = false) const;
-        static uint8 GetAttackBySlot(uint8 slot);        // MAX_ATTACK if not weapon slot
+        static uint8 GetAttackBySlot(uint8 slot, InventoryType inventoryType);        // MAX_ATTACK if not weapon slot
         std::vector<Item*> &GetItemUpdateQueue() { return m_itemUpdateQueue; }
         static bool IsInventoryPos(uint16 pos) { return IsInventoryPos(pos >> 8, pos & 255); }
         static bool IsInventoryPos(uint8 bag, uint8 slot);
@@ -1608,7 +1548,7 @@ class Player : public Unit, public GridObject<Player>
         void AddItemDurations(Item* item);
         void RemoveItemDurations(Item* item);
         void SendItemDurations();
-        void LoadCorpse();
+        void LoadCorpse(PreparedQueryResult result);
         void LoadPet();
 
         bool AddItem(uint32 itemId, uint32 count);
@@ -1873,8 +1813,8 @@ class Player : public Unit, public GridObject<Player>
 
         void SendProficiency(ItemClass itemClass, uint32 itemSubclassMask);
         void SendKnownSpells();
-        bool AddSpell(uint32 spellId, bool active, bool learning, bool dependent, bool disabled, bool loading = false, bool fromSkill = false);
-        void LearnSpell(uint32 spell_id, bool dependent, bool fromSkill = false);
+        bool AddSpell(uint32 spellId, bool active, bool learning, bool dependent, bool disabled, bool loading = false, uint32 fromSkill = 0);
+        void LearnSpell(uint32 spell_id, bool dependent, uint32 fromSkill = 0);
         void RemoveSpell(uint32 spell_id, bool disabled = false, bool learn_low_rank = true);
         void ResetSpells(bool myClassOnly = false);
         void LearnCustomSpells();
@@ -2150,15 +2090,18 @@ class Player : public Unit, public GridObject<Player>
         bool UpdatePosition(const Position &pos, bool teleport = false) { return UpdatePosition(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation(), teleport); }
         void UpdateUnderwaterState(Map* m, float x, float y, float z) override;
 
-        void SendMessageToSet(WorldPacket const* data, bool self) override {SendMessageToSetInRange(data, GetVisibilityRange(), self); }// overwrite Object::SendMessageToSet
-        void SendMessageToSetInRange(WorldPacket const* data, float dist, bool self) override; // overwrite Object::SendMessageToSetInRange
+        void SendMessageToSet(WorldPacket const* data, bool self) override { SendMessageToSetInRange(data, GetVisibilityRange(), self); }
+        void SendMessageToSetInRange(WorldPacket const* data, float dist, bool self) override;
         void SendMessageToSetInRange(WorldPacket const* data, float dist, bool self, bool own_team_only);
         void SendMessageToSet(WorldPacket const* data, Player const* skipped_rcvr) override;
 
         Corpse* GetCorpse() const;
-        void SpawnCorpseBones();
-        void CreateCorpse();
+        void SpawnCorpseBones(bool triggerSave = true);
+        Corpse* CreateCorpse();
         void KillPlayer();
+        static void OfflineResurrect(ObjectGuid const& guid, SQLTransaction& trans);
+        bool HasCorpse() const { return _corpseLocation.GetMapId() != MAPID_INVALID; }
+        WorldLocation GetCorpseLocation() const { return _corpseLocation; }
         uint32 GetResurrectionSpellId() const;
         void ResurrectPlayer(float restore_percent, bool applySickness = false);
         void BuildPlayerRepop();
@@ -2373,15 +2316,6 @@ class Player : public Unit, public GridObject<Player>
         OutdoorPvP* GetOutdoorPvP() const;
         // returns true if the player is in active state for outdoor pvp objective capturing, false otherwise
         bool IsOutdoorPvPActive();
-
-        /*********************************************************/
-        /***                    REST SYSTEM                    ***/
-        /*********************************************************/
-
-        bool isRested() const { return GetRestTime() >= 10*IN_MILLISECONDS; }
-        uint32 GetXPRestBonus(uint32 xp);
-        uint32 GetRestTime() const { return m_restTime;}
-        void SetRestTime(uint32 v) { m_restTime = v;}
 
         /*********************************************************/
         /***              ENVIROMENTAL SYSTEM                  ***/
@@ -2630,8 +2564,6 @@ class Player : public Unit, public GridObject<Player>
         VoidStorageItem* GetVoidStorageItem(uint8 slot) const;
         VoidStorageItem* GetVoidStorageItem(uint64 id, uint8& slot) const;
 
-        bool AddToy(uint32 itemId, bool isFavourite /*= false*/);
-
         void OnCombatExit();
 
         void CreateGarrison(uint32 garrSiteId);
@@ -2709,7 +2641,6 @@ class Player : public Unit, public GridObject<Player>
         void _LoadGroup(PreparedQueryResult result);
         void _LoadSkills(PreparedQueryResult result);
         void _LoadSpells(PreparedQueryResult result);
-        void _LoadToys(ToyBoxContainer const& toys);
         void _LoadFriendList(PreparedQueryResult result);
         bool _LoadHomeBind(PreparedQueryResult result);
         void _LoadDeclinedNames(PreparedQueryResult result);
@@ -2871,8 +2802,6 @@ class Player : public Unit, public GridObject<Player>
         uint32 m_deathTimer;
         time_t m_deathExpireTime;
 
-        uint32 m_restTime;
-
         uint32 m_WeaponProficiency;
         uint32 m_ArmorProficiency;
         bool m_canParry;
@@ -2881,13 +2810,10 @@ class Player : public Unit, public GridObject<Player>
         uint8 m_swingErrorMsg;
 
         ////////////////////Rest System/////////////////////
-        time_t time_inn_enter;
-        uint32 inn_pos_mapid;
-        float  inn_pos_x;
-        float  inn_pos_y;
-        float  inn_pos_z;
+        time_t _restTime;
+        uint32 inn_triggerId;
         float m_rest_bonus;
-        RestType rest_type;
+        uint32 _restFlagMask;
         ////////////////////Rest System/////////////////////
 
         // Social
@@ -2992,6 +2918,8 @@ class Player : public Unit, public GridObject<Player>
         std::unique_ptr<Garrison> _garrison;
 
         bool _advancedCombatLoggingEnabled;
+
+        WorldLocation _corpseLocation;
 };
 
 void AddItemsSetItem(Player* player, Item* item);

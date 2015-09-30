@@ -21,12 +21,7 @@
 
 #include "Common.h"
 #include "DBCEnums.h"
-#include "Path.h"
 #include "Util.h"
-
-#include <map>
-#include <set>
-#include <vector>
 
 // Structures using to access raw DBC data and required packing to portability
 #pragma pack(push, 1)
@@ -1093,9 +1088,6 @@ struct SpellCategoriesEntry
     uint32      ChargeCategory;                             // 9
 };
 
-typedef std::set<uint32> SpellCategorySet;
-typedef std::map<uint32, SpellCategorySet > SpellCategoryStore;
-
 struct SpellCategoryEntry
 {
     uint32      ID;                                         // 0
@@ -1417,6 +1409,20 @@ struct WorldMapAreaEntry
     //uint32    Flags;                                      // 11
     //uint32    LevelRangeMin;                              // 12 Minimum recommended level displayed on world map
     //uint32    LevelRangeMax;                              // 13 Maximum recommended level displayed on world map
+};
+
+struct WorldMapTransformsEntry
+{
+    //uint32 ID;                                            // 0
+    uint32 MapID;                                           // 1
+    DBCPosition3D RegionMin;                                // 2
+    DBCPosition3D RegionMax;                                // 3
+    uint32 NewMapID;                                        // 4
+    DBCPosition2D RegionOffset;                             // 5
+    //uint32 NewDungeonMapID;                               // 6
+    //uint32 Flags;                                         // 7
+    //uint32 NewAreaID;                                     // 8
+    float RegionScale;                                      // 9
 };
 
 struct WorldSafeLocsEntry

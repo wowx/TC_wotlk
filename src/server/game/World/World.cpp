@@ -60,6 +60,7 @@
 #include "SkillExtraItems.h"
 #include "SmartAI.h"
 #include "SupportMgr.h"
+#include "TaxiPathGraph.h"
 #include "TransportMgr.h"
 #include "Unit.h"
 #include "VMapFactory.h"
@@ -1470,6 +1471,9 @@ void World::SetInitialWorldSettings()
     ///- Load GameTables
     LoadGameTables(m_dataPath, m_defaultDbcLocale);
 
+    //Load weighted graph on taxi nodes path
+    sTaxiPathGraph.Initialize();
+
     sSpellMgr->LoadPetFamilySpellsStore();
 
     std::unordered_map<uint32, std::vector<uint32>> mapData;
@@ -2268,7 +2272,10 @@ void World::Update(uint32 diff)
     if (m_timers[WUPDATE_CORPSES].Passed())
     {
         m_timers[WUPDATE_CORPSES].Reset();
-        sObjectAccessor->RemoveOldCorpses();
+        sMapMgr->DoForAllMaps([](Map* map)
+        {
+            map->RemoveOldCorpses();
+        });
     }
 
     ///- Process Game events when necessary
@@ -3430,11 +3437,6 @@ void World::UpdateCharacterInfoDeleted(ObjectGuid const& guid, bool deleted, std
         itr->second.Name = *name;
 }
 
-void World::UpdatePhaseDefinitions()
-{
-
-}
-
 void World::ReloadRBAC()
 {
     // Passive reload, we mark the data as invalidated and next time a permission is checked it will be reloaded
@@ -3442,6 +3444,11 @@ void World::ReloadRBAC()
     for (SessionMap::const_iterator itr = m_sessions.begin(); itr != m_sessions.end(); ++itr)
         if (WorldSession* session = itr->second)
             session->InvalidateRBACData();
+}
+
+void World::RemoveOldCorpses()
+{
+    m_timers[WUPDATE_CORPSES].SetCurrent(m_timers[WUPDATE_CORPSES].GetInterval());
 }
 
 uint32 GetVirtualRealmAddress()

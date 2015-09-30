@@ -1127,7 +1127,6 @@ public:
     {
         TC_LOG_INFO("misc", "Reloading terrain_phase_info table...");
         sObjectMgr->LoadTerrainPhaseInfo();
-        sWorld->UpdatePhaseDefinitions();
         handler->SendGlobalGMSysMessage("Terrain phase infos reloaded.");
         return true;
     }

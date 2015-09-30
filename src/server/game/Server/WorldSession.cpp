@@ -50,6 +50,7 @@
 #include "ChatPackets.h"
 #include "BattlePetMgr.h"
 #include "PacketUtilities.h"
+#include "CollectionMgr.h"
 
 #include <zlib.h>
 
@@ -132,7 +133,8 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     expireTime(60000), // 1 min after socket loss, session is deleted
     forceExit(false),
     m_currentBankerGUID(),
-    _battlePetMgr(Trinity::make_unique<BattlePetMgr>(this))
+    _battlePetMgr(Trinity::make_unique<BattlePetMgr>(this)),
+    _collectionMgr(Trinity::make_unique<CollectionMgr>(this))
 {
     memset(_tutorials, 0, sizeof(_tutorials));
 
@@ -174,6 +176,12 @@ WorldSession::~WorldSession()
         delete packet;
 
     LoginDatabase.PExecute("UPDATE account SET online = 0 WHERE id = %u;", GetAccountId());     // One-time query
+}
+
+bool WorldSession::PlayerDisconnected() const
+{
+    return !(m_Socket[CONNECTION_TYPE_REALM] && m_Socket[CONNECTION_TYPE_REALM]->IsOpen() &&
+             m_Socket[CONNECTION_TYPE_INSTANCE] && m_Socket[CONNECTION_TYPE_INSTANCE]->IsOpen());
 }
 
 std::string const & WorldSession::GetPlayerName() const
@@ -750,40 +758,6 @@ void WorldSession::LoadAccountData(PreparedQueryResult result, uint32 mask)
     while (result->NextRow());
 }
 
-void WorldSession::LoadAccountToys(PreparedQueryResult result)
-{
-    if (!result)
-        return;
-
-    do
-    {
-        Field* fields = result->Fetch();
-        uint32 itemId = fields[0].GetUInt32();
-        bool isFavourite = fields[1].GetBool();
-
-        _toys[itemId] = isFavourite;
-    }
-    while (result->NextRow());
-}
-
-void WorldSession::SaveAccountToys(SQLTransaction& trans)
-{
-    PreparedStatement* stmt = NULL;
-    for (ToyBoxContainer::const_iterator itr = _toys.begin(); itr != _toys.end(); ++itr)
-    {
-        stmt = LoginDatabase.GetPreparedStatement(LOGIN_REP_ACCOUNT_TOYS);
-        stmt->setUInt32(0, GetBattlenetAccountId());
-        stmt->setUInt32(1, itr->first);
-        stmt->setBool(2, itr->second);
-        trans->Append(stmt);
-    }
-}
-
-bool WorldSession::UpdateAccountToys(uint32 itemId, bool isFavourite /*= false*/)
-{
-    return _toys.insert(ToyBoxContainer::value_type(itemId, isFavourite)).second;
-}
-
 void WorldSession::SetAccountData(AccountDataType type, uint32 time, std::string const& data)
 {
     if ((1 << type) & GLOBAL_CACHE_MASK)
@@ -952,17 +926,8 @@ void WorldSession::HandleUnregisterAllAddonPrefixesOpcode(WorldPackets::Chat::Ch
 void WorldSession::HandleAddonRegisteredPrefixesOpcode(WorldPackets::Chat::ChatRegisterAddonPrefixes& packet)
 {
     // This is always sent after CMSG_CHAT_UNREGISTER_ALL_ADDON_PREFIXES
-
-    if (packet.Prefixes.size() > REGISTERED_ADDON_PREFIX_SOFTCAP)
-    {
-        // if we have hit the softcap (64) nothing should be filtered
-        _filterAddonMessages = false;
-        return;
-    }
-
     _registeredAddonPrefixes.insert(_registeredAddonPrefixes.end(), packet.Prefixes.begin(), packet.Prefixes.end());
-
-    if (_registeredAddonPrefixes.size() > REGISTERED_ADDON_PREFIX_SOFTCAP) // shouldn't happen
+    if (_registeredAddonPrefixes.size() > WorldPackets::Chat::ChatRegisterAddonPrefixes::MAX_PREFIXES)
     {
         _filterAddonMessages = false;
         return;
@@ -1248,7 +1213,7 @@ void WorldSession::InitializeSessionCallback(SQLQueryHolder* realmHolder, SQLQue
 {
     LoadAccountData(realmHolder->GetPreparedResult(AccountInfoQueryHolderPerRealm::GLOBAL_ACCOUNT_DATA), GLOBAL_CACHE_MASK);
     LoadTutorialsData(realmHolder->GetPreparedResult(AccountInfoQueryHolderPerRealm::TUTORIALS));
-    LoadAccountToys(holder->GetPreparedResult(AccountInfoQueryHolder::GLOBAL_ACCOUNT_TOYS));
+    _collectionMgr->LoadAccountToys(holder->GetPreparedResult(AccountInfoQueryHolder::GLOBAL_ACCOUNT_TOYS));
 
     if (!m_inQueue)
         SendAuthResponse(AUTH_OK, false);

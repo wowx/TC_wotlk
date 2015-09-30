@@ -57,9 +57,9 @@ ZoneDynamicInfo::ZoneDynamicInfo() : MusicId(0), WeatherId(WEATHER_STATE_FINE),
 
 Map::~Map()
 {
-    sScriptMgr->OnDestroyMap(this);
+    // UnloadAll must be called before deleting the map
 
-    UnloadAll();
+    sScriptMgr->OnDestroyMap(this);
 
     while (!i_worldObjects.empty())
     {
@@ -399,9 +399,16 @@ void Map::DeleteFromWorld(T* obj)
 template<>
 void Map::DeleteFromWorld(Player* player)
 {
-    sObjectAccessor->RemoveObject(player);
+    ObjectAccessor::RemoveObject(player);
     RemoveUpdateObject(player); /// @todo I do not know why we need this, it should be removed in ~Object anyway
     delete player;
+}
+
+template<>
+void Map::DeleteFromWorld(Transport* transport)
+{
+    ObjectAccessor::RemoveObject(transport);
+    delete transport;
 }
 
 void Map::EnsureGridCreated(const GridCoord &p)
@@ -466,8 +473,6 @@ bool Map::EnsureGridLoaded(const Cell &cell)
 
         LoadGridObjects(grid, cell);
 
-        // Add resurrectable corpses to world object list in grid
-        sObjectAccessor->AddCorpsesToGrid(GridCoord(cell.GridX(), cell.GridY()), grid->GetGridType(cell.CellX(), cell.CellY()), this);
         Balance();
         return true;
     }
@@ -515,6 +520,9 @@ bool Map::AddPlayerToMap(Player* player, bool initPlayer /*= true*/)
 
     player->UpdateObjectVisibility(false);
     player->SendUpdatePhasing();
+
+    if (player->IsAlive())
+        ConvertCorpseToBones(player->GetGUID());
 
     sScriptMgr->OnPlayerEnterMap(this, player);
     return true;
@@ -689,6 +697,26 @@ void Map::Update(const uint32 t_diff)
         player->Update(t_diff);
 
         VisitNearbyCellsOf(player, grid_object_update, world_object_update);
+
+        // Handle updates for creatures in combat with player and are more than 60 yards away
+        if (player->IsInCombat())
+        {
+            std::vector<Creature*> updateList;
+            HostileReference* ref = player->getHostileRefManager().getFirst();
+
+            while (ref)
+            {
+                if (Unit* unit = ref->GetSource()->GetOwner())
+                    if (unit->ToCreature() && unit->GetMapId() == player->GetMapId() && !unit->IsWithinDistInMap(player, GetVisibilityRange(), false))
+                        updateList.push_back(unit->ToCreature());
+
+                ref = ref->next();
+            }
+
+            // Process deferred update list for player
+            for (Creature* c : updateList)
+                VisitNearbyCellsOf(c, grid_object_update, world_object_update);
+        }
     }
 
     // non-player active objects, increasing iterator in the loop in case of object removal
@@ -2604,7 +2632,7 @@ inline void Map::setNGrid(NGridType *grid, uint32 x, uint32 y)
     if (x >= MAX_NUMBER_OF_GRIDS || y >= MAX_NUMBER_OF_GRIDS)
     {
         TC_LOG_ERROR("maps", "map::setNGrid() Invalid grid coordinates found: %d, %d!", x, y);
-        ASSERT(false);
+        ABORT();
     }
     i_grids[x][y] = grid;
 }
@@ -2684,7 +2712,7 @@ void Map::AddObjectToSwitchList(WorldObject* obj, bool on)
     else if (itr->second != on)
         i_objectsToSwitch.erase(itr);
     else
-        ASSERT(false);
+        ABORT();
 }
 
 void Map::RemoveAllObjectsInRemoveList()
@@ -2926,7 +2954,7 @@ bool InstanceMap::CanEnter(Player* player)
     if (player->GetMapRef().getTarget() == this)
     {
         TC_LOG_ERROR("maps", "InstanceMap::CanEnter - player %s(%s) already in map %d, %d, %d!", player->GetName().c_str(), player->GetGUID().ToString().c_str(), GetId(), GetInstanceId(), GetSpawnMode());
-        ASSERT(false);
+        ABORT();
         return false;
     }
 
@@ -3035,7 +3063,7 @@ bool InstanceMap::AddPlayerToMap(Player* player, bool initPlayer /*= true*/)
                         TC_LOG_ERROR("maps", "InstanceMap::Add: player %s(%s) is being put into instance %s %d, %d, %d, %d, %d, %d but he is in group %s and is bound to instance %d, %d, %d, %d, %d, %d!", player->GetName().c_str(), player->GetGUID().ToString().c_str(), GetMapName(), mapSave->GetMapId(), mapSave->GetInstanceId(), mapSave->GetDifficultyID(), mapSave->GetPlayerCount(), mapSave->GetGroupCount(), mapSave->CanReset(), group->GetLeaderGUID().ToString().c_str(), playerBind->save->GetMapId(), playerBind->save->GetInstanceId(), playerBind->save->GetDifficultyID(), playerBind->save->GetPlayerCount(), playerBind->save->GetGroupCount(), playerBind->save->CanReset());
                         if (groupBind)
                             TC_LOG_ERROR("maps", "InstanceMap::Add: the group is bound to the instance %s %d, %d, %d, %d, %d, %d", GetMapName(), groupBind->save->GetMapId(), groupBind->save->GetInstanceId(), groupBind->save->GetDifficultyID(), groupBind->save->GetPlayerCount(), groupBind->save->GetGroupCount(), groupBind->save->CanReset());
-                        //ASSERT(false);
+                        //ABORT();
                         return false;
                     }
                     // bind to the group or keep using the group save
@@ -3338,7 +3366,7 @@ bool BattlegroundMap::CanEnter(Player* player)
     if (player->GetMapRef().getTarget() == this)
     {
         TC_LOG_ERROR("maps", "BGMap::CanEnter - %s is already in map!", player->GetGUID().ToString().c_str());
-        ASSERT(false);
+        ABORT();
         return false;
     }
 
@@ -3560,7 +3588,7 @@ time_t Map::GetLinkedRespawnTime(ObjectGuid guid) const
 
 void Map::LoadCorpseData()
 {
-    std::unordered_map<uint64, std::unordered_set<uint32>> phases;
+    std::unordered_map<ObjectGuid::LowType, std::unordered_set<uint32>> phases;
 
     PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CORPSE_PHASES);
     stmt->setUInt32(0, GetId());
@@ -3574,7 +3602,7 @@ void Map::LoadCorpseData()
         do
         {
             Field* fields = phaseResult->Fetch();
-            uint64 guid = fields[0].GetUInt64();
+            ObjectGuid::LowType guid = fields[0].GetUInt64();
             uint32 phaseId = fields[1].GetUInt32();
 
             phases[guid].insert(phaseId);
@@ -3592,7 +3620,6 @@ void Map::LoadCorpseData()
     if (!result)
         return;
 
-    uint32 count = 0;
     do
     {
         Field* fields = result->Fetch();
@@ -3614,8 +3641,8 @@ void Map::LoadCorpseData()
         for (auto phaseId : phases[guid])
             corpse->SetInPhase(phaseId, false, true);
 
-        sObjectAccessor->AddCorpse(corpse);
-        ++count;
+        AddCorpse(corpse);
+
     } while (result->NextRow());
 }
 
@@ -3626,6 +3653,99 @@ void Map::DeleteCorpseData()
     stmt->setUInt32(0, GetId());
     stmt->setUInt32(1, GetInstanceId());
     CharacterDatabase.Execute(stmt);
+}
+
+void Map::AddCorpse(Corpse* corpse)
+{
+    corpse->SetMap(this);
+
+    CellCoord cellCoord = Trinity::ComputeCellCoord(corpse->GetPositionX(), corpse->GetPositionY());
+    _corpsesByCell[cellCoord.GetId()].insert(corpse);
+    _corpsesByPlayer[corpse->GetOwnerGUID()] = corpse;
+}
+
+void Map::RemoveCorpse(Corpse* corpse)
+{
+    ASSERT(corpse && corpse->GetType() != CORPSE_BONES);
+
+    corpse->DestroyForNearbyPlayers();
+    if (corpse->IsInGrid())
+        RemoveFromMap(corpse, false);
+    else
+    {
+        corpse->RemoveFromWorld();
+        corpse->ResetMap();
+    }
+
+    CellCoord cellCoord = Trinity::ComputeCellCoord(corpse->GetPositionX(), corpse->GetPositionY());
+    _corpsesByCell[cellCoord.GetId()].erase(corpse);
+    _corpsesByPlayer.erase(corpse->GetOwnerGUID());
+}
+
+Corpse* Map::ConvertCorpseToBones(ObjectGuid const& ownerGuid, bool insignia /*= false*/)
+{
+    Corpse* corpse = GetCorpseByPlayer(ownerGuid);
+    if (!corpse)
+        return nullptr;
+
+    RemoveCorpse(corpse);
+
+    // remove corpse from DB
+    SQLTransaction trans = CharacterDatabase.BeginTransaction();
+    corpse->DeleteFromDB(trans);
+    CharacterDatabase.CommitTransaction(trans);
+
+    Corpse* bones = NULL;
+
+    // create the bones only if the map and the grid is loaded at the corpse's location
+    // ignore bones creating option in case insignia
+    if ((insignia ||
+        (IsBattlegroundOrArena() ? sWorld->getBoolConfig(CONFIG_DEATH_BONES_BG_OR_ARENA) : sWorld->getBoolConfig(CONFIG_DEATH_BONES_WORLD))) &&
+        !IsRemovalGrid(corpse->GetPositionX(), corpse->GetPositionY()))
+    {
+        // Create bones, don't change Corpse
+        bones = new Corpse();
+        bones->Create(corpse->GetGUID().GetCounter(), this);
+
+        for (uint8 i = OBJECT_FIELD_GUID + 4; i < CORPSE_END; ++i)                    // don't overwrite guid
+            bones->SetUInt32Value(i, corpse->GetUInt32Value(i));
+
+        bones->SetGridCoord(corpse->GetGridCoord());
+        bones->Relocate(corpse->GetPositionX(), corpse->GetPositionY(), corpse->GetPositionZ(), corpse->GetOrientation());
+
+        bones->SetUInt32Value(CORPSE_FIELD_FLAGS, CORPSE_FLAG_UNK2 | CORPSE_FLAG_BONES);
+        bones->SetGuidValue(CORPSE_FIELD_OWNER, ObjectGuid::Empty);
+        bones->SetGuidValue(OBJECT_FIELD_DATA, corpse->GetGuidValue(OBJECT_FIELD_DATA));
+
+        for (uint8 i = 0; i < EQUIPMENT_SLOT_END; ++i)
+            if (corpse->GetUInt32Value(CORPSE_FIELD_ITEM + i))
+                bones->SetUInt32Value(CORPSE_FIELD_ITEM + i, 0);
+
+        bones->CopyPhaseFrom(corpse);
+
+        // add bones in grid store if grid loaded where corpse placed
+        AddToMap(bones);
+    }
+
+    // all references to the corpse should be removed at this point
+    delete corpse;
+
+    return bones;
+}
+
+void Map::RemoveOldCorpses()
+{
+    time_t now = time(nullptr);
+
+    std::vector<ObjectGuid> corpses;
+    corpses.reserve(_corpsesByPlayer.size());
+
+    for (auto const& p : _corpsesByPlayer)
+        if (p.second->IsExpired(now))
+            corpses.push_back(p.first);
+
+    for (ObjectGuid const& ownerGuid : corpses)
+        ConvertCorpseToBones(ownerGuid);
 }
 
 void Map::SendZoneDynamicInfo(Player* player)

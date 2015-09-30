@@ -4875,13 +4875,13 @@ void ObjectMgr::LoadEventScripts()
     {
         for (size_t node_idx = 0; node_idx < sTaxiPathNodesByPath[path_idx].size(); ++node_idx)
         {
-            TaxiPathNodeEntry const& node = sTaxiPathNodesByPath[path_idx][node_idx];
+            TaxiPathNodeEntry const* node = sTaxiPathNodesByPath[path_idx][node_idx];
 
-            if (node.ArrivalEventID)
-                evt_scripts.insert(node.ArrivalEventID);
+            if (node->ArrivalEventID)
+                evt_scripts.insert(node->ArrivalEventID);
 
-            if (node.DepartureEventID)
-                evt_scripts.insert(node.DepartureEventID);
+            if (node->DepartureEventID)
+                evt_scripts.insert(node->DepartureEventID);
         }
     }
 
@@ -5673,9 +5673,10 @@ uint32 ObjectMgr::GetNearestTaxiNode(float x, float y, float z, uint32 mapid, ui
     float dist = 10000;
     uint32 id = 0;
 
+    uint32 requireFlag = (team == ALLIANCE) ? TAXI_NODE_FLAG_ALLIANCE : TAXI_NODE_FLAG_HORDE;
     for (TaxiNodesEntry const* node : sTaxiNodesStore)
     {
-        if (!node || node->MapID != mapid || (!node->MountCreatureID[team == ALLIANCE ? 1 : 0] && node->MountCreatureID[0] != 32981)) // dk flight
+        if (!node || node->MapID != mapid || !(node->Flags & requireFlag))
             continue;
 
         uint8  field   = (uint8)((node->ID - 1) / 8);
@@ -7269,20 +7270,6 @@ void ObjectMgr::DeleteGOData(ObjectGuid::LowType guid)
     _gameObjectDataStore.erase(guid);
 }
 
-void ObjectMgr::AddCorpseCellData(uint32 mapid, uint32 cellid, ObjectGuid player_guid, uint32 instance)
-{
-    // corpses are always added to spawn mode 0 and they are spawned by their instance id
-    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(mapid, 0)][cellid];
-    cell_guids.corpses[player_guid] = instance;
-}
-
-void ObjectMgr::DeleteCorpseCellData(uint32 mapid, uint32 cellid, ObjectGuid player_guid)
-{
-    // corpses are always added to spawn mode 0 and they are spawned by their instance id
-    CellObjectGuids& cell_guids = _mapObjectGuidsStore[MAKE_PAIR32(mapid, 0)][cellid];
-    cell_guids.corpses.erase(player_guid);
-}
-
 void ObjectMgr::LoadQuestRelationsHelper(QuestRelations& map, QuestRelationsReverse* reverseMap, std::string const& table, bool starter, bool go)
 {
     uint32 oldMSTime = getMSTime();
@@ -8613,7 +8600,7 @@ void ObjectMgr::LoadScriptNames()
 
     do
     {
-        _scriptNamesStore.emplace_back((*result)[0].GetCString());
+        _scriptNamesStore.push_back((*result)[0].GetString());
     }
     while (result->NextRow());
 

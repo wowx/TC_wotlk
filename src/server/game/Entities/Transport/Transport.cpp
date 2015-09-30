@@ -20,7 +20,6 @@
 #include "Transport.h"
 #include "MapManager.h"
 #include "ObjectMgr.h"
-#include "Path.h"
 #include "ScriptMgr.h"
 #include "DBCStores.h"
 #include "GameObjectAI.h"
@@ -101,7 +100,6 @@ bool Transport::Create(ObjectGuid::LowType guidlow, uint32 entry, uint32 mapid, 
 
 void Transport::CleanupsBeforeDelete(bool finalCleanup /*= true*/)
 {
-    HashMapHolder<Transport>::Remove(this);
     UnloadStaticPassengers();
     while (!_passengers.empty())
     {

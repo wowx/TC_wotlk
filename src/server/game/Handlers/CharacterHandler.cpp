@@ -236,6 +236,10 @@ bool LoginQueryHolder::Initialize()
     stmt->setUInt64(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_CURRENCY, stmt);
 
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CORPSE_LOCATION);
+    stmt->setUInt64(0, lowGuid);
+    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_CORPSE_LOCATION, stmt);
+
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_GARRISON);
     stmt->setUInt64(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_GARRISON, stmt);
@@ -525,14 +529,11 @@ void WorldSession::HandleCharCreateCallback(PreparedQueryResult result, WorldPac
         }
         case 1:
         {
-            uint16 acctCharCount = 0;
+            uint64 acctCharCount = 0;
             if (result)
             {
                 Field* fields = result->Fetch();
-                // SELECT SUM(x) is MYSQL_TYPE_NEWDECIMAL - needs to be read as string
-                const char* ch = fields[0].GetCString();
-                if (ch)
-                    acctCharCount = atoi(ch);
+                acctCharCount = uint64(fields[0].GetDouble());
             }
 
             if (acctCharCount >= sWorld->getIntConfig(CONFIG_CHARACTERS_PER_ACCOUNT))
@@ -1019,7 +1020,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
             pCurrChar->TeleportTo(pCurrChar->m_homebindMapId, pCurrChar->m_homebindX, pCurrChar->m_homebindY, pCurrChar->m_homebindZ, pCurrChar->GetOrientation());
     }
 
-    sObjectAccessor->AddObject(pCurrChar);
+    ObjectAccessor::AddObject(pCurrChar);
     //TC_LOG_DEBUG("Player %s added to Map.", pCurrChar->GetName().c_str());
 
     if (pCurrChar->GetGuildId())
@@ -1058,7 +1059,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     sSocialMgr->SendFriendStatus(pCurrChar, FRIEND_ONLINE, pCurrChar->GetGUID(), true);
 
     // Place character in world (and load zone) before some object loading
-    pCurrChar->LoadCorpse();
+    pCurrChar->LoadCorpse(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_CORPSE_LOCATION));
 
     // setting Ghost+speed if dead
     if (pCurrChar->m_deathState != ALIVE)
@@ -1692,7 +1693,7 @@ void WorldSession::HandleUseEquipmentSet(WorldPackets::EquipmentSet::UseEquipmen
             continue;
 
         // Only equip weapons in combat
-        if (_player->IsInCombat() && i != EQUIPMENT_SLOT_MAINHAND && i != EQUIPMENT_SLOT_OFFHAND && i != EQUIPMENT_SLOT_RANGED)
+        if (_player->IsInCombat() && i != EQUIPMENT_SLOT_MAINHAND && i != EQUIPMENT_SLOT_OFFHAND)
             continue;
 
         Item* item = _player->GetItemByGuid(useEquipmentSet.Items[i].Item);
@@ -1847,23 +1848,22 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(PreparedQueryResult res
         return;
     }
 
-    /// All checks are fine, deal with race change now
-
+    // All checks are fine, deal with race change now
     ObjectGuid::LowType lowGuid = factionChangeInfo->Guid.GetCounter();
-
-    // resurrect the character in case he's dead
-    sObjectAccessor->ConvertCorpseForPlayer(factionChangeInfo->Guid);
 
     PreparedStatement* stmt = nullptr;
     SQLTransaction trans = CharacterDatabase.BeginTransaction();
 
-    /// Name Change and update atLogin flags
+    // resurrect the character in case he's dead
+    Player::OfflineResurrect(factionChangeInfo->Guid, trans);
+
+    // Name Change and update atLogin flags
     {
         CharacterDatabase.EscapeString(factionChangeInfo->Name);
 
         stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_NAME_AT_LOGIN);
         stmt->setString(0, factionChangeInfo->Name);
-        stmt->setUInt16(1, uint16(atLoginFlags & ~usedLoginFlag));
+        stmt->setUInt16(1, uint16((atLoginFlags | AT_LOGIN_RESURRECT) & ~usedLoginFlag));
         stmt->setUInt64(2, lowGuid);
 
         trans->Append(stmt);
@@ -1874,7 +1874,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(PreparedQueryResult res
         trans->Append(stmt);
     }
 
-    /// Customize
+    // Customize
     {
         if (factionChangeInfo->SkinID)
         {
@@ -1925,7 +1925,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(PreparedQueryResult res
         trans->Append(stmt);
     }
 
-    /// Race Change
+    // Race Change
     {
         stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_RACE);
         stmt->setUInt8(0, factionChangeInfo->RaceID);
@@ -1999,7 +1999,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(PreparedQueryResult res
             trans->Append(stmt);
         }
 
-        /// Team Conversation
+        // Team Conversion
         if (factionChangeInfo->FactionChange)
         {
             // Delete all Flypaths
@@ -2012,41 +2012,14 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(PreparedQueryResult res
                 // Update Taxi path
                 // this doesn't seem to be 100% blizzlike... but it can't really be helped.
                 std::ostringstream taximaskstream;
-                uint32 numFullTaximasks = level / 7;
-                if (numFullTaximasks > 11)
-                    numFullTaximasks = 11;
-
-                if (newTeamId == TEAM_ALLIANCE)
+                TaxiMask const& factionMask = newTeamId == TEAM_HORDE ? sHordeTaxiNodesMask : sAllianceTaxiNodesMask;
+                for (uint8 i = 0; i < TaxiMaskSize; ++i)
                 {
-                    if (playerClass != CLASS_DEATH_KNIGHT)
-                    {
-                        for (uint8 i = 0; i < numFullTaximasks; ++i)
-                            taximaskstream << uint32(sAllianceTaxiNodesMask[i]) << ' ';
-                    }
-                    else
-                    {
-                        for (uint8 i = 0; i < numFullTaximasks; ++i)
-                            taximaskstream << uint32(sAllianceTaxiNodesMask[i] | sDeathKnightTaxiNodesMask[i]) << ' ';
-                    }
+                    // i = (315 - 1) / 8 = 39
+                    // m = 1 << ((315 - 1) % 8) = 4
+                    uint8 deathKnightExtraNode = playerClass != CLASS_DEATH_KNIGHT || i != 39 ? 0 : 4;
+                    taximaskstream << uint32(factionMask[i] | deathKnightExtraNode) << ' ';
                 }
-                else
-                {
-                    if (playerClass != CLASS_DEATH_KNIGHT)
-                    {
-                        for (uint8 i = 0; i < numFullTaximasks; ++i)
-                            taximaskstream << uint32(sHordeTaxiNodesMask[i]) << ' ';
-                    }
-                    else
-                    {
-                        for (uint8 i = 0; i < numFullTaximasks; ++i)
-                            taximaskstream << uint32(sHordeTaxiNodesMask[i] | sDeathKnightTaxiNodesMask[i]) << ' ';
-                    }
-                }
-
-                uint32 numEmptyTaximasks = 11 - numFullTaximasks;
-                for (uint8 i = 0; i < numEmptyTaximasks; ++i)
-                    taximaskstream << "0 ";
-                taximaskstream << '0';
 
                 stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_TAXIMASK);
                 stmt->setString(0, taximaskstream.str());
@@ -2054,7 +2027,7 @@ void WorldSession::HandleCharRaceOrFactionChangeCallback(PreparedQueryResult res
                 trans->Append(stmt);
             }
 
-            /// @todo: make this part asynch
+            /// @todo: make this part async
             if (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD))
             {
                 // Reset guild
