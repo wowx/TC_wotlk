@@ -28,6 +28,7 @@
 #include "PetDefines.h"
 #include "QuestDef.h"
 #include "SpellMgr.h"
+#include "SpellHistory.h"
 #include "Unit.h"
 #include "Opcodes.h"
 #include "WorldSession.h"
@@ -1145,7 +1146,7 @@ class TradeData
         Item* GetItem(TradeSlots slot) const;
         bool HasItem(ObjectGuid itemGuid) const;
         TradeSlots GetTradeSlotForItem(ObjectGuid itemGuid) const;
-        void SetItem(TradeSlots slot, Item* item);
+        void SetItem(TradeSlots slot, Item* item, bool update = false);
 
         uint32 GetSpell() const { return m_spell; }
         void SetSpell(uint32 spell_id, Item* castItem = NULL);
@@ -1445,7 +1446,6 @@ class Player : public Unit, public GridObject<Player>
         InventoryResult CanUseItem(Item* pItem, bool not_loading = true) const;
         bool HasItemTotemCategory(uint32 TotemCategory) const;
         InventoryResult CanUseItem(ItemTemplate const* pItem) const;
-        InventoryResult CanUseAmmo(uint32 item) const;
         InventoryResult CanRollForItemInLFG(ItemTemplate const* item, WorldObject const* lootedObject) const;
         Item* StoreNewItem(ItemPosCountVec const& pos, uint32 itemId, bool update, int32 randomPropertyId = 0, GuidSet const& allowedLooters = GuidSet(), std::vector<int32> const& bonusListIDs = std::vector<int32>());
         Item* StoreItem(ItemPosCountVec const& pos, Item* pItem, bool update);
@@ -1470,11 +1470,11 @@ class Player : public Unit, public GridObject<Player>
         /// send conquest currency points and their cap week/arena
         void SendPvpRewards() const;
         /// return count of currency witch has plr
-        uint32 GetCurrency(uint32 id, bool usePrecision) const;
+        uint32 GetCurrency(uint32 id) const;
         /// return count of currency gaind on current week
-        uint32 GetCurrencyOnWeek(uint32 id, bool usePrecision) const;
+        uint32 GetCurrencyOnWeek(uint32 id) const;
         /// return week cap by currency id
-        uint32 GetCurrencyWeekCap(uint32 id, bool usePrecision) const;
+        uint32 GetCurrencyWeekCap(uint32 id) const;
         /// return presence related currency
         bool HasCurrency(uint32 id, uint32 count) const;
         /// initialize currency count for custom initialization at create character
@@ -2642,7 +2642,6 @@ class Player : public Unit, public GridObject<Player>
         void _LoadGroup(PreparedQueryResult result);
         void _LoadSkills(PreparedQueryResult result);
         void _LoadSpells(PreparedQueryResult result);
-        void _LoadFriendList(PreparedQueryResult result);
         bool _LoadHomeBind(PreparedQueryResult result);
         void _LoadDeclinedNames(PreparedQueryResult result);
         void _LoadArenaTeamInfo(PreparedQueryResult result);

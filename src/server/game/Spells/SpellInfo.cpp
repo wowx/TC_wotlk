@@ -2729,7 +2729,8 @@ std::vector<SpellInfo::CostData> SpellInfo::CalcPowerCost(Unit const* caster, Sp
     else
         collector(sDB2Manager.GetSpellPowers(Id, caster->GetMap()->GetDifficultyID()));
 
-    std::remove_if(costs.begin(), costs.end(), [](CostData const& cost) { return cost.Amount <= 0; });
+    // POWER_RUNES is handled by SpellRuneCost.db2, and cost.Amount is always 0 (see Spell::TakeRunePower)
+    costs.erase(std::remove_if(costs.begin(), costs.end(), [](CostData const& cost) { return cost.Power != POWER_RUNES && cost.Amount <= 0; }), costs.end());
     return costs;
 }
 
@@ -3285,7 +3286,7 @@ void SpellInfo::_UnloadImplicitTargetConditionLists()
         {
             if (SpellEffectInfo const* effect = GetEffect(d, i))
             {
-                ConditionList* cur = effect->ImplicitTargetConditions;
+                ConditionContainer* cur = effect->ImplicitTargetConditions;
                 if (!cur)
                     continue;
                 for (uint8 j = i; j < _effects.size(); ++j)

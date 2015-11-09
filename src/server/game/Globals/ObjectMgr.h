@@ -532,14 +532,14 @@ struct GossipMenuItems
     uint32          BoxMoney;
     std::string     BoxText;
     uint32          BoxBroadcastTextId;
-    ConditionList   Conditions;
+    ConditionContainer   Conditions;
 };
 
 struct GossipMenus
 {
     uint32          entry;
     uint32          text_id;
-    ConditionList   conditions;
+    ConditionContainer   conditions;
 };
 
 typedef std::multimap<uint32, GossipMenus> GossipMenusContainer;
@@ -697,8 +697,15 @@ struct DungeonEncounter
 typedef std::list<DungeonEncounter const*> DungeonEncounterList;
 typedef std::unordered_map<uint64, DungeonEncounterList> DungeonEncounterContainer;
 
-typedef std::unordered_map<uint32, std::list<uint32>> TerrainPhaseInfo;
-typedef std::unordered_map<uint32, std::list<uint32>> PhaseInfo;
+struct PhaseInfoStruct
+{
+    uint32 Id;
+    ConditionContainer Conditions;
+};
+
+typedef std::unordered_map<uint32, std::vector<PhaseInfoStruct>> TerrainPhaseInfo; // terrain swap
+typedef std::unordered_map<uint32, std::vector<uint32>> TerrainUIPhaseInfo; // worldmaparea swap
+typedef std::unordered_map<uint32, std::vector<PhaseInfoStruct>> PhaseInfo; // phase
 
 class PlayerDumpReader;
 
@@ -1286,8 +1293,8 @@ class ObjectMgr
         bool IsVendorItemValid(uint32 vendor_entry, uint32 id, int32 maxcount, uint32 ptime, uint32 ExtendedCost, uint8 type, Player* player = NULL, std::set<uint32>* skip_vendors = NULL, uint32 ORnpcflag = 0) const;
 
         void LoadScriptNames();
-        char const* GetScriptName(uint32 id) const { return id < _scriptNamesStore.size() ? _scriptNamesStore[id].c_str() : ""; }
-        uint32 GetScriptId(char const* name);
+        std::string const& GetScriptName(uint32 id) const;
+        uint32 GetScriptId(std::string const& name);
 
         SpellClickInfoMapBounds GetSpellClickInfoMapBounds(uint32 creature_id) const
         {
@@ -1313,12 +1320,37 @@ class ObjectMgr
             return _gossipMenuItemsStore.equal_range(uiMenuId);
         }
 
-        std::list<uint32>& GetPhaseTerrainSwaps(uint32 phaseid) { return _terrainPhaseInfoStore[phaseid]; }
-        std::list<uint32>& GetDefaultTerrainSwaps(uint32 mapid) { return _terrainMapDefaultStore[mapid]; }
-        std::list<uint32>& GetTerrainWorldMaps(uint32 terrainId) { return _terrainWorldMapStore[terrainId]; }
-        TerrainPhaseInfo& GetDefaultTerrainSwapStore() { return _terrainMapDefaultStore; }
-        std::list<uint32>& GetPhasesForArea(uint32 area) { return _phases[area]; }
-        PhaseInfo& GetAreaPhases() { return _phases; }
+        std::vector<PhaseInfoStruct> const* GetPhaseTerrainSwaps(uint32 phaseid) const
+        {
+            auto itr = _terrainPhaseInfoStore.find(phaseid);
+            return itr != _terrainPhaseInfoStore.end() ? &itr->second : nullptr;
+        }
+        std::vector<PhaseInfoStruct> const* GetDefaultTerrainSwaps(uint32 mapid) const
+        {
+            auto itr = _terrainMapDefaultStore.find(mapid);
+            return itr != _terrainMapDefaultStore.end() ? &itr->second : nullptr;
+        }
+        std::vector<uint32> const* GetTerrainWorldMaps(uint32 terrainId) const
+        {
+            auto itr = _terrainWorldMapStore.find(terrainId);
+            return itr != _terrainWorldMapStore.end() ? &itr->second : nullptr;
+        }
+        std::vector<PhaseInfoStruct> const* GetPhasesForArea(uint32 area) const
+        {
+            auto itr = _phases.find(area);
+            return itr != _phases.end() ? &itr->second : nullptr;
+        }
+        TerrainPhaseInfo const& GetDefaultTerrainSwapStore() const { return _terrainMapDefaultStore; }
+        PhaseInfo const& GetAreaPhases() const { return _phases; }
+        // condition loading helpers
+        std::vector<PhaseInfoStruct>* GetPhasesForAreaForLoading(uint32 area)
+        {
+            auto itr = _phases.find(area);
+            return itr != _phases.end() ? &itr->second : nullptr;
+        }
+        TerrainPhaseInfo& GetPhaseTerrainSwapStoreForLoading() { return _terrainPhaseInfoStore; }
+        TerrainPhaseInfo& GetDefaultTerrainSwapStoreForLoading() { return _terrainMapDefaultStore; }
+        PhaseInfo& GetAreaPhasesForLoading() { return _phases; }
 
         // for wintergrasp only
         GraveYardContainer GraveYardStore;
@@ -1462,7 +1494,7 @@ class ObjectMgr
 
         TerrainPhaseInfo _terrainPhaseInfoStore;
         TerrainPhaseInfo _terrainMapDefaultStore;
-        TerrainPhaseInfo _terrainWorldMapStore;
+        TerrainUIPhaseInfo _terrainWorldMapStore;
         PhaseInfo _phases;
 
     private:

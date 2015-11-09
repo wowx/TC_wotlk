@@ -593,12 +593,13 @@ public:
                     switch (IntroPhase)
                     {
                         case 1:
-                            Talk(SAY_START_1);
+                            if (Player* player = GetPlayerForEscort())
+                                Talk(SAY_START_1, player);
                             IntroPhase = 2;
                             IntroTimer = 7500;
                             break;
                         case 2:
-                            Talk(SAY_END_1);
+                            Talk(SAY_START_2);
                             IntroPhase = 3;
                             IntroTimer = 7500;
                             break;
@@ -608,12 +609,13 @@ public:
                             IntroTimer = 0;
                             break;
                         case 4:
-                            Talk(SAY_START_2);
+                            Talk(SAY_END_1);
                             IntroPhase = 5;
                             IntroTimer = 8000;
                             break;
                         case 5:
-                            Talk(SAY_END_2);
+                            if (Player* player = GetPlayerForEscort())
+                                Talk(SAY_END_2, player);
                             IntroPhase = 6;
                             IntroTimer = 2500;
                             break;
@@ -1816,7 +1818,7 @@ public:
                 player->FailQuest(QUEST_GET_ME_OUTA_HERE);
         }
 
-        void UpdateEscortAI(const uint32 /*diff*/) override
+        void UpdateEscortAI(uint32 /*diff*/) override
         {
             if (GetAttack() && UpdateVictim())
             {

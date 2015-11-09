@@ -224,6 +224,7 @@ class InstanceScript : public ZoneScript
 
         virtual bool SetBossState(uint32 id, EncounterState state);
         EncounterState GetBossState(uint32 id) const { return id < bosses.size() ? bosses[id].state : TO_BE_DECIDED; }
+        static std::string GetBossStateName(uint8 state);
         BossBoundaryMap const* GetBossBoundary(uint32 id) const { return id < bosses.size() ? &bosses[id].boundary : NULL; }
 
         // Achievement criteria additional requirements check
@@ -279,6 +280,8 @@ class InstanceScript : public ZoneScript
         void WriteSaveDataHeaders(std::ostringstream& data);
         void WriteSaveDataBossStates(std::ostringstream& data);
         virtual void WriteSaveDataMore(std::ostringstream& /*data*/) { }
+
+        bool _SkipCheckRequiredBosses(Player const* player = nullptr) const;
 
     private:
         static void LoadObjectData(ObjectData const* creatureData, ObjectInfoMap& objectInfo);
