@@ -13,8 +13,8 @@ Known bugs: Portraits dont work properly - a client side visual bug
 
 Available as:
 - Direct merge: https://github.com/Rochet2/TrinityCore/tree/dressnpcs_6.x
-- Diff: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...dressnpcs_6.x.diff
-- Patch: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...dressnpcs_6.x.patch
+- Diff: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:6.x...dressnpcs_6.x.diff
+- Diff in github view: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:6.x...dressnpcs_6.x
 
 Using direct merge:
 - open git bash to source location
