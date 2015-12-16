@@ -2267,6 +2267,11 @@ void Player::SetGameMaster(bool on)
     UpdateObjectVisibility();
 }
 
+bool Player::CanBeGameMaster() const
+{
+    return m_session && m_session->HasPermission(rbac::RBAC_PERM_COMMAND_GM);
+}
+
 void Player::SetGMVisible(bool on)
 {
     if (on)
@@ -12586,36 +12591,25 @@ void Player::TradeCancel(bool sendback)
 
 void Player::UpdateSoulboundTradeItems()
 {
-    if (m_itemSoulboundTradeable.empty())
-        return;
-
     // also checks for garbage data
-    for (ItemDurationList::iterator itr = m_itemSoulboundTradeable.begin(); itr != m_itemSoulboundTradeable.end();)
+    for (GuidUnorderedSet::iterator itr = m_itemSoulboundTradeable.begin(); itr != m_itemSoulboundTradeable.end();)
     {
-        ASSERT(*itr);
-        if ((*itr)->GetOwnerGUID() != GetGUID())
-        {
-            m_itemSoulboundTradeable.erase(itr++);
-            continue;
-        }
-        if ((*itr)->CheckSoulboundTradeExpire())
-        {
-            m_itemSoulboundTradeable.erase(itr++);
-            continue;
-        }
-        ++itr;
+        Item* item = GetItemByGuid(*itr);
+        if (!item || item->GetOwnerGUID() != GetGUID() || item->CheckSoulboundTradeExpire())
+            itr = m_itemSoulboundTradeable.erase(itr);
+        else
+            ++itr;
     }
 }
 
 void Player::AddTradeableItem(Item* item)
 {
-    m_itemSoulboundTradeable.push_back(item);
+    m_itemSoulboundTradeable.insert(item->GetGUID());
 }
 
-/// @todo should never allow an item to be added to m_itemSoulboundTradeable twice
 void Player::RemoveTradeableItem(Item* item)
 {
-    m_itemSoulboundTradeable.remove(item);
+    m_itemSoulboundTradeable.erase(item->GetGUID());
 }
 
 void Player::UpdateItemDuration(uint32 time, bool realtimeonly)
@@ -18337,17 +18331,28 @@ bool Player::CheckInstanceLoginValid(Map* map)
     {
         // cannot be in raid instance without a group
         if (!GetGroup())
-            return false;
+            return IsInstanceLoginGameMasterException();
     }
     else
     {
         // cannot be in normal instance without a group and more players than 1 in instance
         if (!GetGroup() && map->GetPlayersCountExceptGMs() > 1)
-            return false;
+            return IsInstanceLoginGameMasterException();
     }
 
     // do checks for satisfy accessreqs, instance full, encounter in progress (raid), perm bind group != perm bind player
-    return sMapMgr->CanPlayerEnter(map->GetId(), this, true);
+    return sMapMgr->CanPlayerEnter(map->GetId(), this, true) || IsInstanceLoginGameMasterException();
+}
+
+bool Player::IsInstanceLoginGameMasterException() const
+{
+    if (CanBeGameMaster())
+    {
+        ChatHandler(GetSession()).PSendSysMessage("You didn't get kicked out of the instance even if Player::CheckInstanceLoginValid() returned false and without .gm on flag");
+        return true;
+    }
+    else
+        return false;
 }
 
 bool Player::CheckInstanceCount(uint32 instanceId) const
