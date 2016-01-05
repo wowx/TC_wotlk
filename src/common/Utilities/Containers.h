@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -81,7 +81,8 @@ namespace Trinity
         template <class C>
         typename C::const_iterator SelectRandomWeightedContainerElement(C const& container, std::vector<double> weights)
         {
-            std::discrete_distribution<uint32> dd(weights.begin(), weights.end());
+            Trinity::discrete_distribution_param<uint32> ddParam(weights.begin(), weights.end());
+            std::discrete_distribution<uint32> dd(ddParam);
             typename C::const_iterator it = container.begin();
             std::advance(it, dd(SFMTEngine::Instance()));
             return it;
@@ -91,12 +92,12 @@ namespace Trinity
          * Select a random element from a container where each element has a different chance to be selected.
          *
          * @param container Container to select an element from
-         * @param weightExtractor Function retrieving chance of each element in container
+         * @param weightExtractor Function retrieving chance of each element in container, expected to take an element of the container and returning a double
          *
          * Note: container cannot be empty
          */
-        template <class C>
-        typename C::const_iterator SelectRandomWeightedContainerElement(C const& container, std::function<double(typename C::value_type const&)> weightExtractor)
+        template <class C, class Fn>
+        typename C::const_iterator SelectRandomWeightedContainerElement(C const& container, Fn weightExtractor)
         {
             std::vector<double> weights;
             weights.reserve(container.size());

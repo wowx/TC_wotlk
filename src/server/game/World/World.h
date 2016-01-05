@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -564,7 +564,7 @@ class World
 
         WorldSession* FindSession(uint32 id) const;
         void AddSession(WorldSession* s);
-        void AddInstanceSocket(std::shared_ptr<WorldSocket> sock, uint32 sessionAccountId);
+        void AddInstanceSocket(std::shared_ptr<WorldSocket> sock, uint64 connectToKey);
         void SendAutoBroadcast();
         bool RemoveSession(uint32 id);
         /// Get the number of current active sessions
@@ -874,8 +874,8 @@ class World
         void AddSession_(WorldSession* s);
         LockedQueue<WorldSession*> addSessQueue;
 
-        void ProcessLinkInstanceSocket(std::pair<std::shared_ptr<WorldSocket>, uint32> linkInfo);
-        LockedQueue<std::pair<std::shared_ptr<WorldSocket>, uint32>> _linkSocketQueue;
+        void ProcessLinkInstanceSocket(std::pair<std::shared_ptr<WorldSocket>, uint64> linkInfo);
+        LockedQueue<std::pair<std::shared_ptr<WorldSocket>, uint64>> _linkSocketQueue;
 
         // used versions
         std::string m_DBVersion;

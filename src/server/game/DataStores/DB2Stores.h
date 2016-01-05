@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -80,6 +80,7 @@ extern DB2Storage<MailTemplateEntry>                    sMailTemplateStore;
 extern DB2Storage<ModifierTreeEntry>                    sModifierTreeStore;
 extern DB2Storage<MountCapabilityEntry>                 sMountCapabilityStore;
 extern DB2Storage<OverrideSpellDataEntry>               sOverrideSpellDataStore;
+extern DB2Storage<PlayerConditionEntry>                 sPlayerConditionStore;
 extern DB2Storage<QuestMoneyRewardEntry>                sQuestMoneyRewardStore;
 extern DB2Storage<QuestSortEntry>                       sQuestSortStore;
 extern DB2Storage<QuestXPEntry>                         sQuestXPStore;

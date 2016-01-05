@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ class Unit;
 class WorldObject;
 class LootTemplate;
 struct Condition;
+struct PlayerConditionEntry;
 
 /*! Documentation on implementing a new ConditionType:
     Step 1: Check for the lowest free ID. Look for CONDITION_UNUSED_XX in the enum.
@@ -272,6 +273,8 @@ class ConditionMgr
         bool IsObjectMeetingVehicleSpellConditions(uint32 creatureId, uint32 spellId, Player* player, Unit* vehicle) const;
         bool IsObjectMeetingSmartEventConditions(int64 entryOrGuid, uint32 eventId, uint32 sourceType, Unit* unit, WorldObject* baseObject) const;
         bool IsObjectMeetingVendorItemConditions(uint32 creatureId, uint32 itemId, Player* player, Creature* vendor) const;
+
+        static bool IsPlayerMeetingCondition(Player* player, PlayerConditionEntry const* condition);
 
         struct ConditionTypeInfo
         {

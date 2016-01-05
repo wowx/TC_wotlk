@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -1985,14 +1985,13 @@ void GameObject::ModifyHealth(int32 change, Unit* attackerOrHealer /*= NULL*/, u
     // dealing damage, send packet
     if (player)
     {
-        WorldPacket data(SMSG_DESTRUCTIBLE_BUILDING_DAMAGE, 8 + 8 + 8 + 4 + 4);
-        data << GetPackGUID();
-        data << attackerOrHealer->GetPackGUID();
-        data << player->GetPackGUID();
-        data << uint32(-change);                    // change  < 0 triggers SPELL_BUILDING_HEAL combat log event
-                                                    // change >= 0 triggers SPELL_BUILDING_DAMAGE event
-        data << uint32(spellId);
-        player->SendDirectMessage(&data);
+        WorldPackets::GameObject::DestructibleBuildingDamage packet;
+        packet.Caster = attackerOrHealer->GetGUID(); // todo: this can be a GameObject
+        packet.Target = GetGUID();
+        packet.Damage = -change;
+        packet.Owner = player->GetGUID();
+        packet.SpellID = spellId;
+        player->SendDirectMessage(packet.Write());
     }
 
     GameObjectDestructibleState newState = GetDestructibleState();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2006-2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -274,15 +274,6 @@ public:
         case GOSSIP_ACTION_INFO_DEF + 22:
             player->CLOSE_GOSSIP_MENU();
             player->ActivateTaxiPathTo(879);
-            break;
-        case GOSSIP_ACTION_INFO_DEF + 23:
-            player->CLOSE_GOSSIP_MENU();
-            player->CastSpell(player, 43074, true);               //TaxiPath 736
-            break;
-        case GOSSIP_ACTION_INFO_DEF + 24:
-            player->CLOSE_GOSSIP_MENU();
-            //player->ActivateTaxiPathTo(738);
-            player->CastSpell(player, 43136, false);
             break;
         case GOSSIP_ACTION_INFO_DEF + 25:
             player->CLOSE_GOSSIP_MENU();

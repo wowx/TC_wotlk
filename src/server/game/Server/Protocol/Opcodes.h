@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -152,7 +152,7 @@ enum OpcodeClient : uint32
     CMSG_CAST_SPELL                                   = 0x00F5,
     CMSG_CHALLENGE_MODE_REQUEST_LEADERS               = 0x089E,
     CMSG_CHALLENGE_MODE_REQUEST_MAP_STATS             = 0x00DA,
-    CMSG_CHANGE_BAG_SLOT_FLAG                         = 0x0035,
+    CMSG_CHANGE_BAG_SLOT_FLAG                         = 0x0CA2,
     CMSG_CHANGE_MONUMENT_APPEARANCE                   = 0x1086,
     CMSG_CHANGE_SUB_GROUP                             = 0x11B8,
     CMSG_CHARACTER_RENAME_REQUEST                     = 0x05F0,
@@ -274,6 +274,7 @@ enum OpcodeClient : uint32
     CMSG_GARRISON_RECRUIT_FOLLOWER                    = 0x0588,
     CMSG_GARRISON_REMOVE_FOLLOWER                     = 0x0136,
     CMSG_GARRISON_REMOVE_FOLLOWER_FROM_BUILDING       = 0x100A,
+    CMSG_GARRISON_RENAME_FOLLOWER                     = 0x0472,
     CMSG_GARRISON_REQUEST_BLUEPRINT_AND_SPECIALIZATION_DATA = 0x1CA6,
     CMSG_GARRISON_REQUEST_LANDING_PAGE_SHIPMENT_INFO  = 0x18AA,
     CMSG_GARRISON_REQUEST_SHIPMENT_INFO               = 0x00EA,
@@ -573,8 +574,8 @@ enum OpcodeClient : uint32
     CMSG_REQUEST_RESEARCH_HISTORY                     = 0x017A,
     CMSG_REQUEST_STABLED_PETS                         = 0x0456,
     CMSG_REQUEST_VEHICLE_EXIT                         = 0x0DF5,
-    CMSG_REQUEST_VEHICLE_NEXT_SEAT                    = 0x10A6,
-    CMSG_REQUEST_VEHICLE_PREV_SEAT                    = 0x08BB,
+    CMSG_REQUEST_VEHICLE_NEXT_SEAT                    = 0x08BB,
+    CMSG_REQUEST_VEHICLE_PREV_SEAT                    = 0x10A6,
     CMSG_REQUEST_VEHICLE_SWITCH_SEAT                  = 0x0C6A,
     CMSG_REQUEST_WOW_TOKEN_MARKET_PRICE               = 0x0024,
     CMSG_RESET_CHALLENGE_MODE                         = 0x0065,
@@ -604,9 +605,9 @@ enum OpcodeClient : uint32
     CMSG_SET_ACTIVE_VOICE_CHANNEL                     = 0x00FF,
     CMSG_SET_ADVANCED_COMBAT_LOGGING                  = 0x18A2,
     CMSG_SET_ASSISTANT_LEADER                         = 0x04BB,
-    CMSG_SET_BACKPACK_AUTOSORT_DISABLED               = 0x0906,
-    CMSG_SET_BANK_AUTOSORT_DISABLED                   = 0x142D,
-    CMSG_SET_BANK_BAG_SLOT_FLAG                       = 0x0CA2,
+    CMSG_SET_BACKPACK_AUTOSORT_DISABLED               = 0x142D,
+    CMSG_SET_BANK_AUTOSORT_DISABLED                   = 0x0906,
+    CMSG_SET_BANK_BAG_SLOT_FLAG                       = 0x0035,
     CMSG_SET_CONTACT_NOTES                            = 0x1030,
     CMSG_SET_CURRENCY_FLAGS                           = 0x1421,
     CMSG_SET_DIFFICULTY_ID                            = 0x08B9,
