@@ -339,7 +339,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
     }
     else if (packet.GossipUnit.IsPlayer())
     {
-        if (packet.GossipUnit != _player->GetGUID() || packet.GossipID != _player->PlayerTalkClass->GetGossipMenu().GetMenuId())
+        if (packet.GossipUnit != _player->GetGUID() || static_cast<uint32>(packet.GossipID) != _player->PlayerTalkClass->GetGossipMenu().GetMenuId())
         {
             TC_LOG_DEBUG("network", "WORLD: HandleGossipSelectOptionOpcode - %s not found.", packet.GossipUnit.ToString().c_str());
             return;
