@@ -37,5 +37,7 @@ You can set the sizes in the `creature` and `gameobject` database tables in the 
 In game you can change a spawned object's size by using `.gobject set scale #guid #scale` and spawned NPC sizes by selecting an NPC and using `.npc set scale #scale`
 Using -1 has scale makes the gameobject and npc use the default scale from template.
 
+Known issue: You can not resize some gameobject types. This is likely a client limitation.
+
 ####Bugs and Contact
 Report issues and similar to https://rochet2.github.io/
