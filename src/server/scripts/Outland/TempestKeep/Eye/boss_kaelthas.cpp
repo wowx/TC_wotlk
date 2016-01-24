@@ -374,7 +374,6 @@ struct advisorbase_ai : public ScriptedAI
 
             me->InterruptNonMeleeSpells(false);
             me->SetHealth(0);
-            me->ClearComboPointHolders();
             me->RemoveAllAurasOnDeath();
             me->ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, false);
             me->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
@@ -1286,7 +1285,7 @@ class npc_kael_flamestrike : public CreatureScript
                         DoCast(me, SPELL_FLAME_STRIKE_DMG);
                     }
                     else
-                        me->Kill(me);
+                        me->KillSelf();
 
                     KillSelf = true;
                     Timer = 1000;
