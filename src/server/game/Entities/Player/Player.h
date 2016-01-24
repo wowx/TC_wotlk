@@ -1206,6 +1206,8 @@ class Player : public Unit, public GridObject<Player>
 
         void Update(uint32 time) override;
 
+        bool IsImmunedToSpellEffect(SpellInfo const* spellInfo, uint32 index) const override; // override Unit::IsImmunedToSpellEffect
+
         void SetInWater(bool apply);
 
         bool IsInWater() const override { return m_isInWater; }
@@ -1554,8 +1556,9 @@ class Player : public Unit, public GridObject<Player>
         void KilledPlayerCredit();
         void KillCreditGO(uint32 entry, ObjectGuid guid = ObjectGuid::Empty);
         void TalkedToCreature(uint32 entry, ObjectGuid guid);
-        void MoneyChanged(uint32 value);
+        void MoneyChanged(uint64 value);
         void ReputationChanged(FactionEntry const* factionEntry);
+        void CurrencyChanged(uint32 currencyId, int32 change);
         bool HasQuestForItem(uint32 itemId) const;
         bool HasQuestForGO(int32 goId) const;
         void UpdateForQuestWorldObjects();
@@ -1659,13 +1662,10 @@ class Player : public Unit, public GridObject<Player>
         void SetTarget(ObjectGuid const& /*guid*/) override { } /// Used for serverside target changes, does not apply to players
         void SetSelection(ObjectGuid const& guid) { SetGuidValue(UNIT_FIELD_TARGET, guid); }
 
-        uint8 GetComboPoints() const { return m_comboPoints; }
-        ObjectGuid GetComboTarget() const { return m_comboTarget; }
-
-        void AddComboPoints(Unit* target, int8 count, Spell* spell = nullptr);
+        uint8 GetComboPoints() const { return GetPower(POWER_COMBO_POINTS); }
+        void AddComboPoints(int8 count, Spell* spell = nullptr);
         void GainSpellComboPoints(int8 count);
         void ClearComboPoints();
-        void SendComboPoints();
 
         void SendMailResult(uint32 mailId, MailResponseType mailAction, MailResponseResult mailError, uint32 equipError = 0, ObjectGuid::LowType item_guid = UI64LIT(0), uint32 item_count = 0) const;
         void SendNewMail() const;
@@ -2638,9 +2638,6 @@ class Player : public Unit, public GridObject<Player>
         bool m_itemUpdateQueueBlocked;
 
         uint32 m_ExtraFlags;
-
-        ObjectGuid m_comboTarget;
-        int8 m_comboPoints;
 
         QuestStatusMap m_QuestStatus;
         QuestStatusSaveMap m_QuestStatusSave;
