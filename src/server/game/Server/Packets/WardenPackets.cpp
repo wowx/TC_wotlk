@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,14 +15,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "WorldSession.h"
-#include "VoicePackets.h"
+#include "WardenPackets.h"
 
-void WorldSession::HandleVoiceSessionEnable(WorldPackets::Voice::VoiceSessionEnable& /*packet*/)
+void WorldPackets::Warden::WardenData::Read()
 {
-}
+    uint32 size = _worldPacket.read<uint32>();
 
-void WorldSession::HandleSetActiveVoiceChannel(WorldPackets::Voice::SetActiveVoiceChannel& /*packet*/)
-{
+    if (size)
+    {
+        Data.resize(size);
+        _worldPacket.read(Data.contents(), size);
+    }
 }
-
