@@ -43,6 +43,9 @@
 #include "MovementPacketBuilder.h"
 #include "BattlefieldMgr.h"
 #include "Battleground.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 Object::Object() : m_PackGUID(sizeof(uint64)+1)
 {
@@ -1762,6 +1765,9 @@ void WorldObject::ResetMap()
 {
     ASSERT(m_currMap);
     ASSERT(!IsInWorld());
+
+    m_currMap->GetEluna()->RemoveWorldObjectData(this);
+
     if (IsWorldObject())
         m_currMap->RemoveWorldObject(this);
     m_currMap = NULL;

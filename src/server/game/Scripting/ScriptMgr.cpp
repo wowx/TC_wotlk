@@ -34,6 +34,9 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "Chat.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 // namespace
 // {
@@ -1229,6 +1232,10 @@ bool ScriptMgr::OnCriteriaCheck(uint32 scriptId, Player* source, Unit* target)
 // Player
 void ScriptMgr::OnPVPKill(Player* killer, Player* killed)
 {
+#ifdef ELUNA
+    ElunaDo(killer)->OnPVPKill(killer, killed);
+#endif
+
     FOREACH_SCRIPT(PlayerScript)->OnPVPKill(killer, killed);
 }
 

@@ -50,6 +50,15 @@ file(GLOB_RECURSE sources_Warden Warden/*.cpp Warden/*.h)
 file(GLOB_RECURSE sources_Weather Weather/*.cpp Weather/*.h)
 file(GLOB_RECURSE sources_World World/*.cpp World/*.h)
 
+if(ELUNA)
+  file(GLOB_RECURSE sources_LuaEngine LuaEngine/*.cpp LuaEngine/*.h LuaEngine/hooks*.cpp LuaEngine/hooks*.h LuaEngine/methods*.cpp LuaEngine/methods*.h)
+  set(ELUNA_INCLUDE_DIR
+    ${CMAKE_CURRENT_SOURCE_DIR}/LuaEngine
+    ${CMAKE_CURRENT_SOURCE_DIR}/LuaEngine/hooks
+    ${CMAKE_CURRENT_SOURCE_DIR}/LuaEngine/methods
+  )
+endif(ELUNA)
+
 # Create game-libary
 
 if (USE_COREPCH)
@@ -100,6 +109,7 @@ set(game_STAT_SRCS
   ${sources_Warden}
   ${sources_Weather}
   ${sources_World}
+  ${sources_LuaEngine}
 )
 
 include_directories(
@@ -173,6 +183,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/World
   ${CMAKE_SOURCE_DIR}/dep/cppformat
   ${CMAKE_SOURCE_DIR}/dep/g3dlite/include
+  ${CMAKE_SOURCE_DIR}/dep/lualib
   ${CMAKE_SOURCE_DIR}/dep/recastnavigation/Detour/Include
   ${CMAKE_SOURCE_DIR}/dep/zlib
   ${CMAKE_SOURCE_DIR}/src/common
@@ -198,6 +209,7 @@ include_directories(
   ${MYSQL_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
   ${VALGRIND_INCLUDE_DIR}
+  ${ELUNA_INCLUDE_DIR}
 )
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})

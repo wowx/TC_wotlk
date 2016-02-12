@@ -36,6 +36,9 @@
 #include <list>
 #include <memory>
 
+#ifdef ELUNA
+class Eluna;
+#endif
 class Unit;
 class WorldPacket;
 class InstanceScript;
@@ -278,6 +281,10 @@ class Map : public GridRefManager<NGridType>
 
         void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<Trinity::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
         virtual void Update(const uint32);
+
+#ifdef ELUNA
+        Eluna* GetEluna() { return E; }
+#endif
 
         float GetVisibilityRange() const { return m_VisibleDistance; }
         //function for setting up visibility distance for maps on per-type/per-Id basis
@@ -736,6 +743,10 @@ class Map : public GridRefManager<NGridType>
         std::unordered_set<Corpse*> _corpseBones;
 
         std::unordered_set<Object*> _updateObjects;
+
+#ifdef ELUNA
+        Eluna* E;
+#endif
 };
 
 enum InstanceResetMethod

@@ -36,6 +36,10 @@
 #include "Vehicle.h"
 #include "VMapFactory.h"
 
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
+
 u_map_magic MapMagic        = { {'M','A','P','S'} };
 u_map_magic MapVersionMagic = { {'v','1','.','3'} };
 u_map_magic MapAreaMagic    = { {'A','R','E','A'} };
@@ -67,6 +71,11 @@ Map::~Map()
         sScriptMgr->DecreaseScheduledScriptCount(m_scriptSchedule.size());
 
     MMAP::MMapFactory::createOrGetMMapManager()->unloadMapInstance(GetId(), i_InstanceId);
+
+#ifdef ELUNA
+    delete E;
+    E = NULL;
+#endif
 }
 
 bool Map::ExistMap(uint32 mapid, int gx, int gy)
@@ -233,6 +242,9 @@ m_VisibilityNotifyPeriod(DEFAULT_VISIBILITY_NOTIFY_PERIOD),
 m_activeNonPlayersIter(m_activeNonPlayers.end()), _transportsUpdateIter(_transports.end()),
 i_gridExpiry(expiry),
 i_scriptLock(false), _defaultLight(GetDefaultMapLight(id))
+#ifdef ELUNA
+, E(NULL)
+#endif
 {
     m_parentMap = (_parent ? _parent : this);
     for (unsigned int idx=0; idx < MAX_NUMBER_OF_GRIDS; ++idx)
@@ -247,6 +259,11 @@ i_scriptLock(false), _defaultLight(GetDefaultMapLight(id))
 
     //lets initialize visibility distance for map
     Map::InitVisibilityDistance();
+
+#ifdef ELUNA
+    E = new Eluna(this);
+    E->RunScripts();
+#endif
 
     sScriptMgr->OnCreateMap(this);
 }
@@ -670,6 +687,10 @@ void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<Trinity::Obj
 
 void Map::Update(const uint32 t_diff)
 {
+#ifdef ELUNA
+    GetEluna()->current_thread_id = std::this_thread::get_id();
+#endif
+
     _dynamicTree.update(t_diff);
     /// update worldsessions for existing players
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
@@ -767,6 +788,10 @@ void Map::Update(const uint32 t_diff)
         ProcessRelocationNotifies(t_diff);
 
     sScriptMgr->OnMapUpdate(this, t_diff);
+
+#ifdef ELUNA
+    GetEluna()->current_thread_id = Eluna::main_thread_id;
+#endif
 }
 
 struct ResetNotifier

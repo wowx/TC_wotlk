@@ -64,6 +64,9 @@
 #include "WaypointMovementGenerator.h"
 #include "WeatherMgr.h"
 #include "WorldSession.h"
+#ifdef ELUNA
+#include "LuaEngine.h"
+#endif
 
 
 std::atomic<bool> World::m_stopEvent(false);
@@ -1342,6 +1345,12 @@ void World::SetInitialWorldSettings()
         TC_LOG_FATAL("server.loading", "Unable to load critical files - server shutting down !!!");
         exit(1);
     }
+
+#ifdef ELUNA
+    ///- Initialize Lua Engine
+    TC_LOG_INFO("server.loading", "Initialize Eluna Lua Engine...");
+    Eluna::Initialize();
+#endif
 
     ///- Initialize pool manager
     sPoolMgr->Initialize();

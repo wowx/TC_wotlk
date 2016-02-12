@@ -48,6 +48,11 @@ if( NOPCH )
   set(USE_SCRIPTPCH 0)
 endif()
 
+# set define core details
+add_definitions(-DTRINITY)
+add_definitions(-DWOTLK)
+add_definitions(-DUSING_BOOST)
+
 include(CheckPlatform)
 
 include(GroupSources)

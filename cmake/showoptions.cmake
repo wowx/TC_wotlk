@@ -55,6 +55,13 @@ else()
   message("* Show compile-warnings  : No  (default)")
 endif()
 
+if( ELUNA )
+  message("* Use Eluna LuaEngine    : Yes (default)")
+  add_definitions(-DELUNA)
+else()
+  message("* Use Eluna LuaEngine    : No")
+endif()
+
 if( WITH_COREDEBUG )
   message("* Use coreside debug     : Yes")
   add_definitions(-DTRINITY_DEBUG)

@@ -39,6 +39,18 @@ if( WIN32 )
   endif()
 endif()
 
+if(ELUNA)
+  file(GLOB_RECURSE sources_LuaEngine LuaEngine/*.cpp LuaEngine/*.h LuaEngine/hooks*.cpp LuaEngine/hooks*.h LuaEngine/methods*.cpp LuaEngine/methods*.h)
+  set(ELUNA_INCLUDE_DIR
+    ${CMAKE_SOURCE_DIR}/src/server/game/LuaEngine
+    ${CMAKE_SOURCE_DIR}/src/server/game/LuaEngine/hooks
+    ${CMAKE_SOURCE_DIR}/src/server/game/LuaEngine/methods
+  )
+  set(LUA_LIBRARIES
+    lualib
+  )
+endif(ELUNA)
+
 include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/CommandLine
@@ -47,6 +59,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/dep/cppformat
   ${CMAKE_SOURCE_DIR}/dep/g3dlite/include
   ${CMAKE_SOURCE_DIR}/dep/gsoap
+  ${CMAKE_SOURCE_DIR}/dep/lualib
   ${CMAKE_SOURCE_DIR}/dep/recastnavigation/Detour/Include
   ${CMAKE_SOURCE_DIR}/src/common/
   ${CMAKE_SOURCE_DIR}/src/common/Collision
@@ -83,6 +96,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/src/server/game/Globals
   ${CMAKE_SOURCE_DIR}/src/server/game/Grids
   ${CMAKE_SOURCE_DIR}/src/server/game/Grids/Cells
+  ${CMAKE_SOURCE_DIR}/src/server/game/Groups
   ${CMAKE_SOURCE_DIR}/src/server/game/Handlers
   ${CMAKE_SOURCE_DIR}/src/server/game/Instances
   ${CMAKE_SOURCE_DIR}/src/server/game/Loot
@@ -108,6 +122,7 @@ include_directories(
   ${MYSQL_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
   ${VALGRIND_INCLUDE_DIR}
+  ${ELUNA_INCLUDE_DIR}
 )
 
 GroupSources(${CMAKE_CURRENT_SOURCE_DIR})
@@ -147,6 +162,7 @@ target_link_libraries(worldserver
   ${ZLIB_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
   ${Boost_LIBRARIES}
+  ${LUA_LIBRARIES}
 )
 
 if( WIN32 )

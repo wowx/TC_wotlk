@@ -8,3 +8,10 @@
 #include "Opcodes.h"
 #include "SharedDefines.h"
 #include "ObjectMgr.h"
+
+extern "C"
+{
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+};
