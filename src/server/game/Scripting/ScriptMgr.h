@@ -854,10 +854,7 @@ class GroupScript : public ScriptObject
 
 // namespace
 // {
-    typedef std::vector<ScriptObject*> UnusedScriptContainer;
     typedef std::list<std::string> UnusedScriptNamesContainer;
-
-    extern UnusedScriptContainer UnusedScripts;
     extern UnusedScriptNamesContainer UnusedScriptNames;
 // }
 
@@ -889,7 +886,6 @@ class ScriptMgr
     public: /* Unloading */
 
         void Unload();
-        void UnloadUnusedScripts();
 
     public: /* SpellScriptLoader */
 
