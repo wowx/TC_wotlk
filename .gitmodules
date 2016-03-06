@@ -1,6 +1,6 @@
 [submodule "src/server/game/LuaEngine"]
 	path = src/server/game/LuaEngine
-	url = https://github.com/ElunaLuaEngine/Eluna.git
+	url = https://github.com/Rochet2/Eluna.git
 [submodule "dep/lualib"]
 	path = dep/lualib
 	url = https://github.com/Rochet2/lualib.git
