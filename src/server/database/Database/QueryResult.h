@@ -36,10 +36,10 @@ class ResultSet
         bool NextRow();
         uint64 GetRowCount() const { return _rowCount; }
         uint32 GetFieldCount() const { return _fieldCount; }
-        char* GetFieldName(uint32 index)
+        MYSQL_FIELD const & GetFieldInfo(uint32 index) const
         {
             ASSERT(index < _fieldCount);
-            return _fields[index].name;
+            return _fields[index];
         }
 
         Field* Fetch() const { return _currentRow; }
