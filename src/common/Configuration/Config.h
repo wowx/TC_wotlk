@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -41,10 +41,10 @@ public:
 
     bool Reload(std::string& error);
 
-    std::string GetStringDefault(std::string const& name, const std::string& def);
-    bool GetBoolDefault(std::string const& name, bool def);
-    int GetIntDefault(std::string const& name, int def);
-    float GetFloatDefault(std::string const& name, float def);
+    std::string GetStringDefault(std::string const& name, const std::string& def) const;
+    bool GetBoolDefault(std::string const& name, bool def) const;
+    int GetIntDefault(std::string const& name, int def) const;
+    float GetFloatDefault(std::string const& name, float def) const;
 
     std::string const& GetFilename();
     std::list<std::string> GetKeysByString(std::string const& name);

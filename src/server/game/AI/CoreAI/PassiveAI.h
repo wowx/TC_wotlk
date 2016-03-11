@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -41,7 +41,7 @@ class PossessedAI : public CreatureAI
         void MoveInLineOfSight(Unit*) override { }
         void AttackStart(Unit* target) override;
         void UpdateAI(uint32) override;
-        void EnterEvadeMode() override { }
+        void EnterEvadeMode(EvadeReason /*why*/) override { }
 
         void JustDied(Unit*) override;
         void KilledUnit(Unit* victim) override;
@@ -57,7 +57,7 @@ class NullCreatureAI : public CreatureAI
         void MoveInLineOfSight(Unit*) override { }
         void AttackStart(Unit*) override { }
         void UpdateAI(uint32) override { }
-        void EnterEvadeMode() override { }
+        void EnterEvadeMode(EvadeReason /*why*/) override { }
         void OnCharmed(bool /*apply*/) override { }
 
         static int Permissible(const Creature*) { return PERMIT_BASE_IDLE;  }
@@ -69,7 +69,7 @@ class CritterAI : public PassiveAI
         explicit CritterAI(Creature* c) : PassiveAI(c) { }
 
         void DamageTaken(Unit* done_by, uint32& /*damage*/) override;
-        void EnterEvadeMode() override;
+        void EnterEvadeMode(EvadeReason why) override;
 };
 
 class TriggerAI : public NullCreatureAI

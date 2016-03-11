@@ -1,4 +1,4 @@
-# Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+# Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -13,6 +13,7 @@ file(GLOB_RECURSE mmap_gen_sources *.cpp *.h)
 set(mmap_gen_Includes
   ${CMAKE_BINARY_DIR}
   ${CMAKE_SOURCE_DIR}/dep/libmpq
+  ${CMAKE_SOURCE_DIR}/dep/cppformat
   ${CMAKE_SOURCE_DIR}/dep/zlib
   ${CMAKE_SOURCE_DIR}/dep/bzip2
   ${CMAKE_SOURCE_DIR}/dep/g3dlite/include
@@ -48,6 +49,7 @@ target_link_libraries(mmaps_generator
   g3dlib
   Recast
   Detour
+  format
   ${BZIP2_LIBRARIES}
   ${ZLIB_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}

@@ -1,5 +1,5 @@
 # Copyright (C) 2005-2009 MaNGOS project <http://getmangos.com/>
-# Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+# Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
 #
 # This file is free software; as a special exception the author gives
 # unlimited permission to copy and/or distribute it, with or without
@@ -14,6 +14,7 @@ file(GLOB_RECURSE mapextractor_SRCS *.cpp *.h)
 set(include_Dirs
   ${CMAKE_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/dep/cppformat
+  ${CMAKE_SOURCE_DIR}/dep/g3dlite/include
   ${CMAKE_SOURCE_DIR}/dep/libmpq
   ${CMAKE_SOURCE_DIR}/src/common
   ${CMAKE_SOURCE_DIR}/src/common/Utilities
@@ -37,6 +38,7 @@ add_executable(mapextractor
 target_link_libraries(mapextractor
   common
   format
+  g3dlib
   mpq
   ${BZIP2_LIBRARIES}
   ${ZLIB_LIBRARIES}

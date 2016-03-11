@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -57,7 +57,7 @@ struct UpdateResult
 class DBUpdaterUtil
 {
 public:
-    static std::string GetMySqlCli();
+    static std::string GetCorrectedMySQLExecutable();
 
     static bool CheckExecutable();
 
@@ -70,8 +70,6 @@ class DBUpdater
 {
 public:
     using Path = boost::filesystem::path;
-
-    static std::string GetSourceDirectory();
 
     static inline std::string GetConfigEntry();
 

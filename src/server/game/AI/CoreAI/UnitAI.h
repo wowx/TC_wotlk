@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2015 TrinityCore <http://www.trinitycore.org/>
+ * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
@@ -266,23 +266,6 @@ class UnitAI
     private:
         UnitAI(UnitAI const& right) = delete;
         UnitAI& operator=(UnitAI const& right) = delete;
-};
-
-class PlayerAI : public UnitAI
-{
-    protected:
-        Player* const me;
-    public:
-        explicit PlayerAI(Player* player) : UnitAI((Unit*)player), me(player) { }
-
-        void OnCharmed(bool apply) override;
-};
-
-class SimpleCharmedAI : public PlayerAI
-{
-    public:
-        void UpdateAI(uint32 diff) override;
-        SimpleCharmedAI(Player* player): PlayerAI(player) { }
 };
 
 #endif
