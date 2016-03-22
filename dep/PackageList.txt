@@ -1,6 +1,6 @@
 TrinityCore uses (parts of or in whole) the following opensource software :
 
-Boost
+Boost (external)
   http://www.boost.org
   Version: 1.55
 
@@ -23,6 +23,14 @@ G3D (a commercial-grade C++ 3D engine available as Open Source (BSD License)
 jemalloc (a general-purpose scalable concurrent malloc-implementation)
   http://www.canonware.com/jemalloc/
   Version: 3.6.0
+
+libreadline (command line editing library)
+  https://cnswww.cns.cwru.edu/php/chet/readline/rltop.html
+  Version: external
+
+OpenSSL (general-purpose cryptography library)
+  https://www.openssl.org/
+  Version: external
 
 SFMT (SIMD-oriented Fast Mersenne Twister)
   Based on http://agner.org/random/
@@ -47,8 +55,3 @@ recastnavigation (Recast is state of the art navigation mesh construction toolse
 CascLib (An open-source implementation of library for reading CASC storage from Blizzard games since 2014)
   https://github.com/ladislav-zezula/CascLib
   Version: 919a2d670cb749c501ee15887a88e9b9a538961b
-
-zmqpp (C++ binding for 0mq/zmq is a 'high-level' library that hides most of the c-style interface core 0mq provides.)
-  https://github.com/zeromq/zmqpp
-  Version: 3.2.0 17e9f6afa98f56ecac1e3f3eecbfc112357a6732
-
