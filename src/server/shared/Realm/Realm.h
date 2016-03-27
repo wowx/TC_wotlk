@@ -41,7 +41,7 @@ enum RealmFlags
 
 namespace Battlenet
 {
-    struct RealmHandle
+    struct TC_SHARED_API RealmHandle
     {
         RealmHandle() : Region(0), Site(0), Realm(0) { }
         RealmHandle(uint8 region, uint8 battlegroup, uint32 index)
@@ -78,7 +78,7 @@ enum RealmType
 };
 
 // Storage object for a realm
-struct Realm
+struct TC_SHARED_API Realm
 {
     Battlenet::RealmHandle Id;
     uint32 Build;
@@ -92,8 +92,6 @@ struct Realm
     uint8 Timezone;
     AccountTypes AllowedSecurityLevel;
     float PopulationLevel;
-    bool Updated;
-    bool Keep;
 
     ip::tcp::endpoint GetAddressForClient(ip::address const& clientAddr) const;
     uint32 GetConfigId() const;
