@@ -4063,7 +4063,7 @@ void ObjectMgr::LoadQuests()
             }
             else if (qinfo->SourceItemIdCount == 0)
             {
-                TC_LOG_ERROR("sql.sql", "Quest %u has `SourceItemId` = %u but `SourceItemIdCount` = 0, set to 1 but need fix in DB.",
+                TC_LOG_ERROR("sql.sql", "Quest %u has `StartItem` = %u but `ProvidedItemCount` = 0, set to 1 but need fix in DB.",
                     qinfo->GetQuestId(), qinfo->SourceItemId);
                 qinfo->SourceItemIdCount = 1;                    // update to 1 for allow quest work for backward compatibility with DB
             }
@@ -9428,6 +9428,13 @@ std::string ObjectMgr::GetRealmName(uint32 realmId) const
 {
     RealmNameContainer::const_iterator iter = _realmNameStore.find(realmId);
     return iter != _realmNameStore.end() ? iter->second : "";
+}
+
+std::string ObjectMgr::GetNormalizedRealmName(uint32 realmId) const
+{
+    std::string name = GetRealmName(realmId);
+    name.erase(std::remove_if(name.begin(), name.end(), ::isspace), name.end());
+    return name;
 }
 
 void ObjectMgr::LoadGameObjectQuestItems()
