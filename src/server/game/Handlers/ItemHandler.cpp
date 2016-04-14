@@ -1231,6 +1231,8 @@ void WorldSession::HandleTransmogrifyItems(WorldPackets::Item::TransmogrifyItems
 
         if (transmogrifier->GetTemplate()->GetBonding() == BIND_WHEN_EQUIPED || transmogrifier->GetTemplate()->GetBonding() == BIND_WHEN_USE)
             transmogrifier->SetBinding(true);
+
+        transmogrified->SetState(ITEM_CHANGED, player);
     }
 
     for (auto& transmogVoirPair : transmogVoidItems)
@@ -1245,12 +1247,14 @@ void WorldSession::HandleTransmogrifyItems(WorldPackets::Item::TransmogrifyItems
 
         transmogrified->SetNotRefundable(player);
         transmogrified->ClearSoulboundTradeable(player);
+        transmogrified->SetState(ITEM_CHANGED, player);
     }
 
     for (Item* item : resetAppearanceItems)
     {
         item->SetModifier(ITEM_MODIFIER_TRANSMOG_ITEM_ID, 0);
         item->SetModifier(ITEM_MODIFIER_TRANSMOG_APPEARANCE_MOD, 0);
+        item->SetState(ITEM_CHANGED, player);
         player->SetVisibleItemSlot(item->GetSlot(), item);
     }
 }
