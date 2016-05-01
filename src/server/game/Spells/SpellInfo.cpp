@@ -26,6 +26,7 @@
 #include "Battleground.h"
 #include "Vehicle.h"
 #include "Pet.h"
+#include "InstanceScript.h"
 
 uint32 GetTargetFlagMask(SpellTargetObjectTypes objType)
 {
@@ -527,7 +528,8 @@ int32 SpellEffectInfo::CalcValue(Unit const* caster /*= nullptr*/, int32 const* 
                 level = int32(_spellInfo->MaxLevel);
             else if (level < int32(_spellInfo->BaseLevel))
                 level = int32(_spellInfo->BaseLevel);
-            level -= int32(_spellInfo->SpellLevel);
+            if (!_spellInfo->IsPassive())
+                level -= int32(_spellInfo->SpellLevel);
             basePoints += int32(level * basePointsPerLevel);
         }
 
@@ -636,10 +638,10 @@ float SpellEffectInfo::CalcValueMultiplier(Unit* caster, Spell* spell) const
 
 float SpellEffectInfo::CalcDamageMultiplier(Unit* caster, Spell* spell) const
 {
-    float multiplier = ChainAmplitude;
+    float multiplierPercent = ChainAmplitude * 100.0f;
     if (Player* modOwner = (caster ? caster->GetSpellModOwner() : NULL))
-        modOwner->ApplySpellMod(_spellInfo->Id, SPELLMOD_DAMAGE_MULTIPLIER, multiplier, spell);
-    return multiplier;
+        modOwner->ApplySpellMod(_spellInfo->Id, SPELLMOD_DAMAGE_MULTIPLIER, multiplierPercent, spell);
+    return multiplierPercent / 100.0f;
 }
 
 bool SpellEffectInfo::HasRadius() const
@@ -2020,6 +2022,13 @@ SpellCastResult SpellInfo::CheckTarget(Unit const* caster, WorldObject const* ta
     if (unitTarget->HasAuraType(SPELL_AURA_PREVENT_RESURRECTION))
     if (HasEffect(caster->GetMap()->GetDifficultyID(), SPELL_EFFECT_SELF_RESURRECT) || HasEffect(caster->GetMap()->GetDifficultyID(), SPELL_EFFECT_RESURRECT) || HasEffect(caster->GetMap()->GetDifficultyID(), SPELL_EFFECT_RESURRECT_NEW))
             return SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED;
+
+    if (HasAttribute(SPELL_ATTR8_BATTLE_RESURRECTION))
+        if (Map* map = caster->GetMap())
+            if (InstanceMap* iMap = map->ToInstanceMap())
+                if (InstanceScript* instance = iMap->GetInstanceScript())
+                    if (instance->GetCombatResurrectionCharges() == 0 && instance->IsEncounterInProgress())
+                        return SPELL_FAILED_TARGET_CANNOT_BE_RESURRECTED;
 
     return SPELL_CAST_OK;
 }
