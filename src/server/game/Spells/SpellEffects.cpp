@@ -1721,7 +1721,7 @@ void Spell::SendLoot(ObjectGuid guid, LootType loottype)
         if (sScriptMgr->OnGossipHello(player, gameObjTarget))
             return;
 
-        if (gameObjTarget->AI()->GossipHello(player))
+        if (gameObjTarget->AI()->GossipHello(player, true))
             return;
 
         switch (gameObjTarget->GetGoType())
@@ -2723,8 +2723,6 @@ void Spell::EffectTameCreature(SpellEffIndex /*effIndex*/)
 
     // caster have pet now
     m_caster->SetMinion(pet, true);
-
-    pet->InitTalentForLevel();
 
     if (m_caster->GetTypeId() == TYPEID_PLAYER)
     {
@@ -5265,8 +5263,6 @@ void Spell::EffectCreateTamedPet(SpellEffIndex /*effIndex*/)
     // unitTarget has pet now
     unitTarget->SetMinion(pet, true);
 
-    pet->InitTalentForLevel();
-
     if (unitTarget->GetTypeId() == TYPEID_PLAYER)
     {
         pet->SavePetToDB(PET_SAVE_AS_CURRENT);
@@ -5927,7 +5923,7 @@ void Spell::EffectUpdatePlayerPhase(SpellEffIndex /*effIndex*/)
     if (!unitTarget || unitTarget->GetTypeId() != TYPEID_PLAYER)
         return;
 
-    unitTarget->UpdateAreaPhase();
+    unitTarget->UpdateAreaAndZonePhase();
 }
 
 void Spell::EffectUpdateZoneAurasAndPhases(SpellEffIndex /*effIndex*/)
