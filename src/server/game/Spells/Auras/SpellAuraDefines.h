@@ -433,7 +433,7 @@ enum AuraType
     SPELL_AURA_373                                          = 373,
     SPELL_AURA_MODIFY_FALL_DAMAGE_PCT                       = 374,  // NYI
     SPELL_AURA_375                                          = 375,
-    SPELL_AURA_MOD_CURRENCY_GAIN_2                          = 376,  // NYI
+    SPELL_AURA_MOD_CURRENCY_GAIN_FROM_SOURCE                = 376,  // NYI
     SPELL_AURA_CAST_WHILE_WALKING_2                         = 377,  // NYI
     SPELL_AURA_378                                          = 378,
     SPELL_AURA_379                                          = 379,
@@ -451,7 +451,7 @@ enum AuraType
     SPELL_AURA_391                                          = 391,
     SPELL_AURA_392                                          = 392,
     SPELL_AURA_393                                          = 393,
-    SPELL_AURA_394                                          = 394,
+    SPELL_AURA_SHOW_CONFIRMATION_PROMPT                     = 394,
     SPELL_AURA_AREA_TRIGGER                                 = 395,  // NYI
     SPELL_AURA_396                                          = 396,
     SPELL_AURA_397                                          = 397,
@@ -526,13 +526,14 @@ enum AuraType
     SPELL_AURA_MOD_BONUS_ARMOR_PCT                          = 466, // Affects bonus armor gain from all sources except base stats
     SPELL_AURA_MOD_STAT_BONUS_PCT                           = 467, // Affects stat gain from all sources except base stats
     SPELL_AURA_468                                          = 468,
-    SPELL_AURA_469                                          = 469,
+    SPELL_AURA_SHOW_CONFIRMATION_PROMPT_WITH_DIFFICULTY     = 469,
+    SPELL_AURA_470                                          = 470,
     SPELL_AURA_471                                          = 471,
     SPELL_AURA_472                                          = 472,
     SPELL_AURA_PREVENT_DURABILITY_LOSS_FROM_COMBAT          = 473, // Prevents durability loss from dealing/taking damage
     SPELL_AURA_474                                          = 474,
     SPELL_AURA_ALLOW_USING_GAMEOBJECTS_WHILE_MOUNTED        = 475,
-    SPELL_AURA_476                                          = 476,
+    SPELL_AURA_MOD_CURRENCY_GAIN_LOOTED                     = 476,
     SPELL_AURA_477                                          = 477,
     SPELL_AURA_478                                          = 478,
     SPELL_AURA_479                                          = 479,

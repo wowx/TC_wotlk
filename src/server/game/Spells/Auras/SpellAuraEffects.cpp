@@ -435,7 +435,7 @@ pAuraEffectHandler AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNULL,                                      //373
     &AuraEffect::HandleNULL,                                      //374 SPELL_AURA_MODIFY_FALL_DAMAGE_PCT
     &AuraEffect::HandleNULL,                                      //375
-    &AuraEffect::HandleNULL,                                      //376 SPELL_AURA_MOD_CURRENCY_GAIN_2
+    &AuraEffect::HandleNULL,                                      //376 SPELL_AURA_MOD_CURRENCY_GAIN_FROM_SOURCE
     &AuraEffect::HandleNULL,                                      //377 SPELL_AURA_CAST_WHILE_WALKING_2
     &AuraEffect::HandleNULL,                                      //378
     &AuraEffect::HandleNULL,                                      //379
@@ -453,7 +453,7 @@ pAuraEffectHandler AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNULL,                                      //391
     &AuraEffect::HandleNULL,                                      //392
     &AuraEffect::HandleNULL,                                      //393
-    &AuraEffect::HandleNULL,                                      //394
+    &AuraEffect::HandleShowConfirmationPrompt,                    //394 SPELL_AURA_SHOW_CONFIRMATION_PROMPT
     &AuraEffect::HandleNULL,                                      //395 SPELL_AURA_AREA_TRIGGER
     &AuraEffect::HandleNULL,                                      //396
     &AuraEffect::HandleNULL,                                      //397
@@ -528,14 +528,14 @@ pAuraEffectHandler AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNULL,                                      //466 SPELL_AURA_MOD_BONUS_ARMOR_PCT
     &AuraEffect::HandleModStatBonusPercent,                       //467 SPELL_AURA_MOD_STAT_BONUS_PCT
     &AuraEffect::HandleNULL,                                      //468
-    &AuraEffect::HandleNULL,                                      //469
+    &AuraEffect::HandleShowConfirmationPrompt,                    //469 SPELL_AURA_SHOW_CONFIRMATION_PROMPT_WITH_DIFFICULTY
     &AuraEffect::HandleNULL,                                      //470
     &AuraEffect::HandleNULL,                                      //471
     &AuraEffect::HandleNULL,                                      //472
     &AuraEffect::HandleNoImmediateEffect,                         //473 SPELL_AURA_PREVENT_DURABILITY_LOSS_FROM_COMBAT implemented in Player::DurabilityPointLossForEquipSlot
     &AuraEffect::HandleNULL,                                      //474
     &AuraEffect::HandleAllowUsingGameobjectsWhileMounted,         //475 SPELL_AURA_ALLOW_USING_GAMEOBJECTS_WHILE_MOUNTED
-    &AuraEffect::HandleNULL,                                      //476
+    &AuraEffect::HandleNULL,                                      //476 SPELL_AURA_MOD_CURRENCY_GAIN_LOOTED
     &AuraEffect::HandleNULL,                                      //477
     &AuraEffect::HandleNULL,                                      //478
     &AuraEffect::HandleNULL,                                      //479
@@ -706,6 +706,11 @@ int32 AuraEffect::CalculateAmount(Unit* caster)
                 break;
             }
         }
+        case SPELL_AURA_SHOW_CONFIRMATION_PROMPT_WITH_DIFFICULTY:
+            if (caster)
+                amount = caster->GetMap()->GetDifficultyID();
+            m_canBeRecalculated = false;
+            break;
         default:
             break;
     }
@@ -846,6 +851,9 @@ void AuraEffect::ChangeAmount(int32 newAmount, bool mark, bool onStackOrReapply)
     for (std::list<AuraApplication*>::const_iterator apptItr = effectApplications.begin(); apptItr != effectApplications.end(); ++apptItr)
         if ((*apptItr)->HasEffect(GetEffIndex()))
             HandleEffect(*apptItr, handleMask, true);
+
+    if (GetSpellInfo()->HasAttribute(SPELL_ATTR8_AURA_SEND_AMOUNT))
+        GetBase()->SetNeedClientUpdateForTargets();
 }
 
 void AuraEffect::HandleEffect(AuraApplication * aurApp, uint8 mode, bool apply)
@@ -6650,6 +6658,21 @@ void AuraEffect::HandleModSpellCategoryCooldown(AuraApplication const* aurApp, u
 
     if (Player* player = aurApp->GetTarget()->ToPlayer())
         player->SendSpellCategoryCooldowns();
+}
+
+void AuraEffect::HandleShowConfirmationPrompt(AuraApplication const* aurApp, uint8 mode, bool apply) const
+{
+    if (!(mode & AURA_EFFECT_HANDLE_REAL))
+        return;
+
+    Player* player = aurApp->GetTarget()->ToPlayer();
+    if (!player)
+        return;
+
+    if (apply)
+        player->AddTemporarySpell(_effectInfo->TriggerSpell);
+    else
+        player->RemoveTemporarySpell(_effectInfo->TriggerSpell);
 }
 
 void AuraEffect::HandleOverridePetSpecs(AuraApplication const* aurApp, uint8 mode, bool apply) const
