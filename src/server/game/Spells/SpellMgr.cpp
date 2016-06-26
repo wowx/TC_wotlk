@@ -1261,113 +1261,71 @@ void SpellMgr::LoadSpellRanks()
 {
     uint32 oldMSTime = getMSTime();
 
-    //                                                     0             1      2
-    QueryResult result = WorldDatabase.Query("SELECT first_spell_id, spell_id, rank from spell_ranks ORDER BY first_spell_id, rank");
-
-    if (!result)
+    std::map<uint32 /*spell*/, uint32 /*next*/> chains;
+    std::set<uint32> hasPrev;
+    for (SkillLineAbilityEntry const* skillAbility : sSkillLineAbilityStore)
     {
-        TC_LOG_INFO("server.loading", ">> Loaded 0 spell rank records. DB table `spell_ranks` is empty.");
-        return;
+        if (!skillAbility->SupercedesSpell)
+            continue;
+
+        if (!GetSpellInfo(skillAbility->SupercedesSpell) || !GetSpellInfo(skillAbility->SpellID))
+            continue;
+
+        chains[skillAbility->SupercedesSpell] = skillAbility->SpellID;
+        hasPrev.insert(skillAbility->SpellID);
     }
 
-    uint32 count = 0;
-    bool finished = false;
-
-    do
+    // each key in chains that isn't present in hasPrev is a first rank
+    for (auto itr = chains.begin(); itr != chains.end(); ++itr)
     {
-                        // spellid, rank
-        std::list < std::pair < int32, int32 > > rankChain;
-        int32 currentSpell = -1;
-        int32 lastSpell = -1;
-
-        // fill one chain
-        while (currentSpell == lastSpell && !finished)
-        {
-            Field* fields = result->Fetch();
-
-            currentSpell = fields[0].GetUInt32();
-            if (lastSpell == -1)
-                lastSpell = currentSpell;
-            uint32 spell_id = fields[1].GetUInt32();
-            uint32 rank = fields[2].GetUInt8();
-
-            // don't drop the row if we're moving to the next rank
-            if (currentSpell == lastSpell)
-            {
-                rankChain.push_back(std::make_pair(spell_id, rank));
-                if (!result->NextRow())
-                    finished = true;
-            }
-            else
-                break;
-        }
-        // check if chain is made with valid first spell
-        SpellInfo const* first = GetSpellInfo(lastSpell);
-        if (!first)
-        {
-            TC_LOG_ERROR("sql.sql", "The spell rank identifier(first_spell_id) %u listed in `spell_ranks` does not exist!", lastSpell);
+        if (hasPrev.count(itr->first))
             continue;
-        }
-        // check if chain is long enough
-        if (rankChain.size() < 2)
-        {
-            TC_LOG_ERROR("sql.sql", "There is only 1 spell rank for identifier(first_spell_id) %u in `spell_ranks`, entry is not needed!", lastSpell);
-            continue;
-        }
-        int32 curRank = 0;
-        bool valid = true;
-        // check spells in chain
-        for (std::list<std::pair<int32, int32> >::iterator itr = rankChain.begin(); itr!= rankChain.end(); ++itr)
-        {
-            SpellInfo const* spell = GetSpellInfo(itr->first);
-            if (!spell)
-            {
-                TC_LOG_ERROR("sql.sql", "The spell %u (rank %u) listed in `spell_ranks` for chain %u does not exist!", itr->first, itr->second, lastSpell);
-                valid = false;
-                break;
-            }
-            ++curRank;
-            if (itr->second != curRank)
-            {
-                TC_LOG_ERROR("sql.sql", "The spell %u (rank %u) listed in `spell_ranks` for chain %u does not have a proper rank value (should be %u)!", itr->first, itr->second, lastSpell, curRank);
-                valid = false;
-                break;
-            }
-        }
-        if (!valid)
-            continue;
-        int32 prevRank = 0;
-        // insert the chain
-        std::list<std::pair<int32, int32> >::iterator itr = rankChain.begin();
-        do
-        {
-            ++count;
-            int32 addedSpell = itr->first;
 
-            if (mSpellInfoMap[addedSpell]->ChainEntry)
-                TC_LOG_ERROR("sql.sql", "The spell %u (rank: %u, first: %u) listed in `spell_ranks` already has ChainEntry from dbc.", addedSpell, itr->second, lastSpell);
+        SpellInfo const* first = AssertSpellInfo(itr->first);
+        SpellInfo const* next = AssertSpellInfo(itr->second);
 
-            mSpellChains[addedSpell].first = GetSpellInfo(lastSpell);
-            mSpellChains[addedSpell].last = GetSpellInfo(rankChain.back().first);
-            mSpellChains[addedSpell].rank = itr->second;
-            mSpellChains[addedSpell].prev = GetSpellInfo(prevRank);
-            mSpellInfoMap[addedSpell]->ChainEntry = &mSpellChains[addedSpell];
-            prevRank = addedSpell;
-            ++itr;
+        mSpellChains[itr->first].first = first;
+        mSpellChains[itr->first].prev = nullptr;
+        mSpellChains[itr->first].next = next;
+        mSpellChains[itr->first].last = next;
+        mSpellChains[itr->first].rank = 1;
+        mSpellInfoMap[itr->first]->ChainEntry = &mSpellChains[itr->first];
 
-            if (itr == rankChain.end())
+        mSpellChains[itr->second].first = first;
+        mSpellChains[itr->second].prev = first;
+        mSpellChains[itr->second].next = nullptr;
+        mSpellChains[itr->second].last = next;
+        mSpellChains[itr->second].rank = 2;
+        mSpellInfoMap[itr->second]->ChainEntry = &mSpellChains[itr->second];
+
+        uint8 rank = 3;
+        auto nextItr = chains.find(itr->second);
+        while (nextItr != chains.end())
+        {
+            SpellInfo const* prev = AssertSpellInfo(nextItr->first); // already checked in previous iteration (or above, in case this is the first one)
+            SpellInfo const* last = AssertSpellInfo(nextItr->second);
+
+            mSpellChains[nextItr->first].next = last;
+
+            mSpellChains[nextItr->second].first = first;
+            mSpellChains[nextItr->second].prev = prev;
+            mSpellChains[nextItr->second].next = nullptr;
+            mSpellChains[nextItr->second].last = last;
+            mSpellChains[nextItr->second].rank = rank++;
+            mSpellInfoMap[nextItr->second]->ChainEntry = &mSpellChains[nextItr->second];
+
+            // fill 'last'
+            do
             {
-                mSpellChains[addedSpell].next = NULL;
-                break;
-            }
-            else
-                mSpellChains[addedSpell].next = GetSpellInfo(itr->first);
+                mSpellChains[prev->Id].last = last;
+                prev = mSpellChains[prev->Id].prev;
+            } while (prev);
+
+            nextItr = chains.find(nextItr->second);
         }
-        while (true);
     }
-    while (!finished);
 
-    TC_LOG_INFO("server.loading", ">> Loaded %u spell rank records in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+    TC_LOG_INFO("server.loading", ">> Loaded %u spell rank records in %u ms", uint32(mSpellChains.size()), GetMSTimeDiffToNow(oldMSTime));
 }
 
 void SpellMgr::LoadSpellRequired()
@@ -1451,8 +1409,8 @@ void SpellMgr::LoadSpellLearnSkills()
             if (effect && effect->Effect == SPELL_EFFECT_SKILL)
             {
                 SpellLearnSkillNode dbc_node;
-                dbc_node.skill = effect->MiscValue;
-                dbc_node.step  = effect->CalcValue();
+                dbc_node.skill = uint16(effect->MiscValue);
+                dbc_node.step  = uint16(effect->CalcValue());
                 if (dbc_node.skill != SKILL_RIDING)
                     dbc_node.value = 1;
                 else
@@ -1678,7 +1636,7 @@ void SpellMgr::LoadSpellTargetPositions()
 
         // target facing is in degrees for 6484 & 9268... (blizz sucks)
         if (effect->PositionFacing > 2 * M_PI)
-            st.target_Orientation = effect->PositionFacing * M_PI / 180;
+            st.target_Orientation = effect->PositionFacing * float(M_PI) / 180;
         else
             st.target_Orientation = effect->PositionFacing;
 
@@ -2376,7 +2334,7 @@ void SpellMgr::LoadPetLevelupSpellMap()
                 if (skillLine->SkillLine != creatureFamily->SkillLine[j])
                     continue;
 
-                if (skillLine->AquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
+                if (skillLine->AcquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
                     continue;
 
                 SpellInfo const* spell = GetSpellInfo(skillLine->SpellID);
@@ -3422,7 +3380,7 @@ void SpellMgr::LoadSpellInfoCorrections()
                 spellInfo->AuraInterruptFlags |= AURA_INTERRUPT_FLAG_CAST | AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_JUMP;
                 break;
             case 5420: // Tree of Life (Passive)
-                spellInfo->Stances = UI64LIT(1) << (FORM_TREE - 1);
+                spellInfo->Stances = UI64LIT(1) << (FORM_TREE_OF_LIFE - 1);
                 break;
             case 49376: // Feral Charge (Cat Form)
                 spellInfo->AttributesEx3 &= ~SPELL_ATTR3_CANT_TRIGGER_PROC;
@@ -3494,7 +3452,7 @@ void SpellMgr::LoadPetFamilySpellsStore()
                     if (skillLine->SkillLine != cFamily->SkillLine[0] && skillLine->SkillLine != cFamily->SkillLine[1])
                         continue;
 
-                    if (skillLine->AquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
+                    if (skillLine->AcquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
                         continue;
 
                     sPetFamilySpellsStore[i].insert(spellInfo->ID);
