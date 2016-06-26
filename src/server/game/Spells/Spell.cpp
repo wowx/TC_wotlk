@@ -5749,7 +5749,7 @@ SpellCastResult Spell::CheckCasterAuras() const
             Unit::AuraEffectList const& stunAuras = m_caster->GetAuraEffectsByType(SPELL_AURA_MOD_STUN);
             for (Unit::AuraEffectList::const_iterator i = stunAuras.begin(); i != stunAuras.end(); ++i)
             {
-                if ((*i)->GetSpellInfo()->GetAllEffectsMechanicMask() && !((*i)->GetSpellInfo()->GetAllEffectsMechanicMask() & (1<<MECHANIC_STUN)))
+                if ((*i)->GetSpellInfo()->GetAllEffectsMechanicMask() && !((*i)->GetSpellInfo()->GetAllEffectsMechanicMask() & (1 << MECHANIC_STUN)))
                 {
                     foundNotStun = true;
                     break;
@@ -5765,10 +5765,12 @@ SpellCastResult Spell::CheckCasterAuras() const
         prevented_reason = SPELL_FAILED_CONFUSED;
     else if (unitflag & UNIT_FLAG_FLEEING && !m_spellInfo->HasAttribute(SPELL_ATTR5_USABLE_WHILE_FEARED))
         prevented_reason = SPELL_FAILED_FLEEING;
-    else if (unitflag & UNIT_FLAG_SILENCED && m_spellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE)
+    else if (unitflag & UNIT_FLAG_SILENCED && m_spellInfo->PreventionType & SPELL_PREVENTION_TYPE_SILENCE)
         prevented_reason = SPELL_FAILED_SILENCED;
-    else if (unitflag & UNIT_FLAG_PACIFIED && m_spellInfo->PreventionType == SPELL_PREVENTION_TYPE_PACIFY)
+    else if (unitflag & UNIT_FLAG_PACIFIED && m_spellInfo->PreventionType & SPELL_PREVENTION_TYPE_PACIFY)
         prevented_reason = SPELL_FAILED_PACIFIED;
+    else if (m_caster->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_NO_ACTIONS) && m_spellInfo->PreventionType & SPELL_PREVENTION_TYPE_NO_ACTIONS)
+        prevented_reason = SPELL_FAILED_NO_ACTIONS;
 
     // Attr must make flag drop spell totally immune from all effects
     if (prevented_reason != SPELL_CAST_OK)
@@ -5814,9 +5816,9 @@ SpellCastResult Spell::CheckCasterAuras() const
                             case SPELL_AURA_MOD_SILENCE:
                             case SPELL_AURA_MOD_PACIFY:
                             case SPELL_AURA_MOD_PACIFY_SILENCE:
-                                if (m_spellInfo->PreventionType == SPELL_PREVENTION_TYPE_PACIFY)
+                                if (m_spellInfo->PreventionType & SPELL_PREVENTION_TYPE_PACIFY)
                                     return SPELL_FAILED_PACIFIED;
-                                else if (m_spellInfo->PreventionType == SPELL_PREVENTION_TYPE_SILENCE)
+                                else if (m_spellInfo->PreventionType & SPELL_PREVENTION_TYPE_SILENCE)
                                     return SPELL_FAILED_SILENCED;
                                 break;
                             default: break;
