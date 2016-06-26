@@ -28,12 +28,16 @@
 
 enum MonkSpells
 {
-    SPELL_MONK_CRACKLING_JADE_LIGHTNING_CHANNEL = 117952,
-    SPELL_MONK_CRACKLING_JADE_LIGHTNING_CHI_PROC = 123333,
-    SPELL_MONK_STANCE_OF_THE_SPIRITED_CRANE = 154436,
-
-    SPELL_MONK_CRACKLING_JADE_LIGHTNING_KNOCKBACK = 117962,
-    SPELL_MONK_CRACKLING_JADE_LIGHTNING_KNOCKBACK_CD = 117953,
+    SPELL_MONK_CRACKLING_JADE_LIGHTNING_CHANNEL         = 117952,
+    SPELL_MONK_CRACKLING_JADE_LIGHTNING_CHI_PROC        = 123333,
+    SPELL_MONK_CRACKLING_JADE_LIGHTNING_KNOCKBACK       = 117962,
+    SPELL_MONK_CRACKLING_JADE_LIGHTNING_KNOCKBACK_CD    = 117953,
+    SPELL_MONK_GLYPH_OF_SURGING_MIST                    = 120483,
+    SPELL_MONK_PROVOKE_SINGLE_TARGET                    = 116189,
+    SPELL_MONK_PROVOKE_AOE                              = 118635,
+    SPELL_MONK_STANCE_OF_THE_SPIRITED_CRANE             = 154436,
+    SPELL_MONK_SURGING_MIST_HEAL                        = 116995,
+    SPELL_MONK_SURGING_MIST_HEAL_GLYPHED                = 123273,
 };
 
 // 117952 - Crackling Jade Lightning
@@ -125,8 +129,114 @@ public:
     }
 };
 
+// 115546 - Provoke
+class spell_monk_provoke : public SpellScriptLoader
+{
+public:
+    spell_monk_provoke() : SpellScriptLoader("spell_monk_provoke") { }
+
+    class spell_monk_provoke_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_monk_provoke_SpellScript);
+
+        static uint32 const BlackOxStatusEntry = 61146;
+
+        bool Validate(SpellInfo const* spellInfo) override
+        {
+            if (!(spellInfo->GetExplicitTargetMask() & TARGET_FLAG_UNIT_MASK)) // ensure GetExplTargetUnit() will return something meaningful during CheckCast
+                return false;
+            if (!sSpellMgr->GetSpellInfo(SPELL_MONK_PROVOKE_SINGLE_TARGET))
+                return false;
+            if (!sSpellMgr->GetSpellInfo(SPELL_MONK_PROVOKE_AOE))
+                return false;
+            return true;
+        }
+
+        SpellCastResult CheckExplicitTarget()
+        {
+            if (GetExplTargetUnit()->GetEntry() != BlackOxStatusEntry)
+            {
+                SpellInfo const* singleTarget = sSpellMgr->AssertSpellInfo(SPELL_MONK_PROVOKE_SINGLE_TARGET);
+                SpellCastResult singleTargetExplicitResult = singleTarget->CheckExplicitTarget(GetCaster(), GetExplTargetUnit());
+                if (singleTargetExplicitResult != SPELL_CAST_OK)
+                    return singleTargetExplicitResult;
+            }
+            else if (GetExplTargetUnit()->GetOwnerGUID() != GetCaster()->GetGUID())
+                return SPELL_FAILED_BAD_TARGETS;
+
+            return SPELL_CAST_OK;
+        }
+
+        void HandleDummy(SpellEffIndex effIndex)
+        {
+            PreventHitDefaultEffect(effIndex);
+            if (GetHitUnit()->GetEntry() != BlackOxStatusEntry)
+                GetCaster()->CastSpell(GetHitUnit(), SPELL_MONK_PROVOKE_SINGLE_TARGET, true);
+            else
+                GetCaster()->CastSpell(GetHitUnit(), SPELL_MONK_PROVOKE_AOE, true);
+        }
+
+        void Register() override
+        {
+            OnCheckCast += SpellCheckCastFn(spell_monk_provoke_SpellScript::CheckExplicitTarget);
+            OnEffectHitTarget += SpellEffectFn(spell_monk_provoke_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_monk_provoke_SpellScript();
+    }
+};
+
+// 116694 - Surging Mist
+class spell_monk_surging_mist : public SpellScriptLoader
+{
+    public:
+        spell_monk_surging_mist() : SpellScriptLoader("spell_monk_surging_mist") { }
+
+        class spell_monk_surging_mist_SpellScript : public SpellScript
+        {
+            PrepareSpellScript(spell_monk_surging_mist_SpellScript);
+
+            bool Validate(SpellInfo const* /*spellInfo*/) override
+            {
+                if (!sSpellMgr->GetSpellInfo(SPELL_MONK_SURGING_MIST_HEAL))
+                    return false;
+                if (!sSpellMgr->GetSpellInfo(SPELL_MONK_SURGING_MIST_HEAL_GLYPHED))
+                    return false;
+                if (!sSpellMgr->GetSpellInfo(SPELL_MONK_GLYPH_OF_SURGING_MIST))
+                    return false;
+                return true;
+            }
+
+            void HandleDummy(SpellEffIndex effIndex)
+            {
+                PreventHitDefaultEffect(effIndex);
+                Unit* caster = GetCaster();
+                Unit* target = GetHitUnit();
+                if (caster->GetShapeshiftForm() == FORM_CRANE_STANCE && caster->HasAura(SPELL_MONK_GLYPH_OF_SURGING_MIST))
+                    caster->CastSpell(target, SPELL_MONK_SURGING_MIST_HEAL_GLYPHED, true);
+                else
+                    caster->CastSpell(target, SPELL_MONK_SURGING_MIST_HEAL, true);
+            }
+
+            void Register() override
+            {
+                OnEffectHitTarget += SpellEffectFn(spell_monk_surging_mist_SpellScript::HandleDummy, EFFECT_0, SPELL_EFFECT_DUMMY);
+            }
+        };
+
+        SpellScript* GetSpellScript() const override
+        {
+            return new spell_monk_surging_mist_SpellScript();
+        }
+};
+
 void AddSC_monk_spell_scripts()
 {
     new spell_monk_crackling_jade_lightning();
     new spell_monk_crackling_jade_lightning_knockback_proc_aura();
+    new spell_monk_provoke();
+    new spell_monk_surging_mist();
 }
