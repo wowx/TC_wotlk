@@ -11,7 +11,7 @@ class example_ItemGossip : public ItemScript
 public:
     example_ItemGossip() : ItemScript("example_ItemGossip") { }
 
-    bool OnUse(Player* player, Item* item, SpellCastTargets const& /*targets*/) override // Any hook here
+    bool OnUse(Player* player, Item* item, SpellCastTargets const& /*targets*/, ObjectGuid /*castId*/) override // Any hook here
     {
         player->PlayerTalkClass->ClearMenus(); // Clears old options
         player->ADD_GOSSIP_ITEM(0, "Morph", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
