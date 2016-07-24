@@ -509,7 +509,7 @@ void WorldSession::HandleMirrorImageDataRequest(WorldPackets::Spells::GetMirrorI
                     packet.DisplayID = outfit.displayId;
                     packet.RaceID = outfit.race;
                     packet.Gender = outfit.gender;
-                    packet.ClassID = 1;
+                    packet.ClassID = outfit.Class;
                     packet.SkinColor = outfit.skin;
                     packet.FaceVariation = outfit.face;
                     packet.HairVariation = outfit.hair;
