@@ -653,7 +653,7 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     {
         ASSERT(namesProfanity->Language < TOTAL_LOCALES || namesProfanity->Language == -1);
         if (namesProfanity->Language != -1)
-            _nameValidators[namesProfanity->Language].emplace_back(namesProfanity->Name, boost::regex::perl | boost::regex::icase | boost::regex::optimize);
+            _nameValidators[namesProfanity->Language].emplace_back(namesProfanity->Name, std::regex::icase | std::regex::optimize);
         else
         {
             for (uint32 i = 0; i < TOTAL_LOCALES; ++i)
@@ -661,13 +661,13 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
                 if (i == LOCALE_none)
                     continue;
 
-                _nameValidators[i].emplace_back(namesProfanity->Name, boost::regex::perl | boost::regex::icase | boost::regex::optimize);
+                _nameValidators[i].emplace_back(namesProfanity->Name, std::regex::icase | std::regex::optimize);
             }
         }
     }
 
     for (NamesReservedEntry const* namesReserved : sNamesReservedStore)
-        _nameValidators[TOTAL_LOCALES].emplace_back(namesReserved->Name, boost::regex::perl | boost::regex::icase | boost::regex::optimize);
+        _nameValidators[TOTAL_LOCALES].emplace_back(namesReserved->Name, std::regex::icase | std::regex::optimize);
 
     for (NamesReservedLocaleEntry const* namesReserved : sNamesReservedLocaleStore)
     {
@@ -678,7 +678,7 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
                 continue;
 
             if (namesReserved->LocaleMask & (1 << i))
-                _nameValidators[i].emplace_back(namesReserved->Name, boost::regex::perl | boost::regex::icase | boost::regex::optimize);
+                _nameValidators[i].emplace_back(namesReserved->Name, std::regex::icase | std::regex::optimize);
         }
     }
 
@@ -825,13 +825,13 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     }
 
     // Check loaded DB2 files proper version
-    if (!sAreaTableStore.LookupEntry(8343) ||                // last area (areaflag) added in 7.0.3 (21414)
-        !sCharTitlesStore.LookupEntry(480) ||                // last char title added in 7.0.3 (21414)
-        !sGemPropertiesStore.LookupEntry(3217) ||            // last gem property added in 7.0.3 (21414)
-        !sItemStore.LookupEntry(139410) ||                   // last item added in 7.0.3 (21414)
-        !sItemExtendedCostStore.LookupEntry(6038) ||         // last item extended cost added in 7.0.3 (21414)
-        !sMapStore.LookupEntry(1632) ||                      // last map added in 7.0.3 (21414)
-        !sSpellStore.LookupEntry(220019))                    // last spell added in 7.0.3 (21414)
+    if (!sAreaTableStore.LookupEntry(8478) ||                // last area (areaflag) added in 7.0.3 (22293)
+        !sCharTitlesStore.LookupEntry(486) ||                // last char title added in 7.0.3 (22293)
+        !sGemPropertiesStore.LookupEntry(3363) ||            // last gem property added in 7.0.3 (22293)
+        !sItemStore.LookupEntry(142074) ||                   // last item added in 7.0.3 (22293)
+        !sItemExtendedCostStore.LookupEntry(6121) ||         // last item extended cost added in 7.0.3 (22293)
+        !sMapStore.LookupEntry(1670) ||                      // last map added in 7.0.3 (22293)
+        !sSpellStore.LookupEntry(229118))                    // last spell added in 7.0.3 (22293)
     {
         TC_LOG_ERROR("misc", "You have _outdated_ DB2 files. Please extract correct versions from current using client.");
         exit(1);
@@ -1262,13 +1262,13 @@ std::string DB2Manager::GetNameGenEntry(uint8 race, uint8 gender, LocaleConstant
 
 ResponseCodes DB2Manager::ValidateName(std::string const& name, LocaleConstant locale) const
 {
-    for (boost::regex const& regex : _nameValidators[locale])
-        if (boost::regex_search(name, regex))
+    for (std::regex const& regex : _nameValidators[locale])
+        if (std::regex_search(name, regex))
             return CHAR_NAME_PROFANE;
 
     // regexes at TOTAL_LOCALES are loaded from NamesReserved which is not locale specific
-    for (boost::regex const& regex : _nameValidators[TOTAL_LOCALES])
-        if (boost::regex_search(name, regex))
+    for (std::regex const& regex : _nameValidators[TOTAL_LOCALES])
+        if (std::regex_search(name, regex))
             return CHAR_NAME_RESERVED;
 
     return CHAR_NAME_SUCCESS;
