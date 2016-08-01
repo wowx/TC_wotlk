@@ -482,9 +482,11 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     SetUInt32Value(PLAYER_FIELD_LIFETIME_HONORABLE_KILLS, 0);
 
     // set starting level
-    uint32 start_level = getClass() != CLASS_DEATH_KNIGHT
-        ? sWorld->getIntConfig(CONFIG_START_PLAYER_LEVEL)
-        : sWorld->getIntConfig(CONFIG_START_HEROIC_PLAYER_LEVEL);
+    uint32 start_level = sWorld->getIntConfig(CONFIG_START_PLAYER_LEVEL);
+    if (getClass() == CLASS_DEATH_KNIGHT)
+        start_level = sWorld->getIntConfig(CONFIG_START_HEROIC_PLAYER_LEVEL);
+    else if (getClass() == CLASS_DEMON_HUNTER)
+        start_level = sWorld->getIntConfig(CONFIG_START_DEMON_HUNTER_PLAYER_LEVEL);
 
     if (m_session->HasPermission(rbac::RBAC_PERM_USE_START_GM_LEVEL))
     {
@@ -506,7 +508,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     // start with every map explored
     if (sWorld->getBoolConfig(CONFIG_START_ALL_EXPLORED))
     {
-        for (uint8 i=0; i<PLAYER_EXPLORED_ZONES_SIZE; i++)
+        for (uint16 i=0; i<PLAYER_EXPLORED_ZONES_SIZE; i++)
             SetFlag(PLAYER_EXPLORED_ZONES_1+i, 0xFFFFFFFF);
     }
 
@@ -8128,9 +8130,6 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
                             // GroupLoot: rolls items over threshold. Items with quality < threshold, round robin
                             group->GroupLoot(loot, go);
                             break;
-                        case NEED_BEFORE_GREED:
-                            group->NeedBeforeGreed(loot, go);
-                            break;
                         case MASTER_LOOT:
                             group->MasterLoot(loot, go);
                             break;
@@ -8154,9 +8153,6 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
                         break;
                     case FREE_FOR_ALL:
                         permission = ALL_PERMISSION;
-                        break;
-                    case ROUND_ROBIN:
-                        permission = ROUND_ROBIN_PERMISSION;
                         break;
                     default:
                         permission = GROUP_PERMISSION;
@@ -8304,9 +8300,6 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
                             // GroupLoot: rolls items over threshold. Items with quality < threshold, round robin
                             group->GroupLoot(loot, creature);
                             break;
-                        case NEED_BEFORE_GREED:
-                            group->NeedBeforeGreed(loot, creature);
-                            break;
                         case MASTER_LOOT:
                             group->MasterLoot(loot, creature);
                             break;
@@ -8343,9 +8336,6 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
                                 break;
                             case FREE_FOR_ALL:
                                 permission = ALL_PERMISSION;
-                                break;
-                            case ROUND_ROBIN:
-                                permission = ROUND_ROBIN_PERMISSION;
                                 break;
                             default:
                                 permission = GROUP_PERMISSION;
@@ -11033,7 +11023,7 @@ InventoryResult Player::CanEquipChildItem(Item* parentItem) const
         return EQUIP_ERR_OK;
 
     ItemChildEquipmentEntry const* childEquipement = sDB2Manager.GetItemChildEquipment(parentItem->GetEntry());
-    if (!childItem)
+    if (!childEquipement)
         return EQUIP_ERR_OK;
 
     Item* dstItem = GetItemByPos(INVENTORY_SLOT_BAG_0, childEquipement->AltEquipmentSlot);
@@ -11353,7 +11343,7 @@ InventoryResult Player::CanUseItem(Item* pItem, bool not_loading) const
 
 InventoryResult Player::CanUseItem(ItemTemplate const* proto) const
 {
-    // Used by group, function NeedBeforeGreed, to know if a prototype can be used by a player
+    // Used by group, function GroupLoot, to know if a prototype can be used by a player
 
     if (!proto)
         return EQUIP_ERR_ITEM_NOT_FOUND;
@@ -11413,7 +11403,7 @@ InventoryResult Player::CanRollForItemInLFG(ItemTemplate const* proto, WorldObje
     if (!proto)
         return EQUIP_ERR_ITEM_NOT_FOUND;
 
-   // Used by group, function NeedBeforeGreed, to know if a prototype can be used by a player
+   // Used by group, function GroupLoot, to know if a prototype can be used by a player
     if ((proto->GetAllowableClass() & getClassMask()) == 0 || (proto->GetAllowableRace() & getRaceMask()) == 0)
         return EQUIP_ERR_CANT_EQUIP_EVER;
 
@@ -11554,7 +11544,7 @@ Item* Player::StoreItem(ItemPosCountVec const& dest, Item* pItem, bool update)
         lastItem = _StoreItem(pos, pItem, count, true, update);
     }
 
-    AutoUnequipChildItem(pItem);
+    AutoUnequipChildItem(lastItem);
 
     return lastItem;
 }
@@ -11933,7 +11923,8 @@ void Player::VisualizeItem(uint8 slot, Item* pItem)
     if (pItem->GetTemplate()->GetBonding() == BIND_WHEN_EQUIPED || pItem->GetTemplate()->GetBonding() == BIND_WHEN_PICKED_UP || pItem->GetTemplate()->GetBonding() == BIND_QUEST_ITEM)
     {
         pItem->SetBinding(true);
-        GetSession()->GetCollectionMgr()->AddItemAppearance(pItem);
+        if (IsInWorld())
+            GetSession()->GetCollectionMgr()->AddItemAppearance(pItem);
     }
 
     TC_LOG_DEBUG("entities.player.items", "Player::SetVisibleItemSlot: Player '%s' (%s), Slot: %u, Item: %u",
@@ -17818,15 +17809,7 @@ bool Player::isAllowedToLoot(const Creature* creature)
         case MASTER_LOOT:
         case FREE_FOR_ALL:
             return true;
-        case ROUND_ROBIN:
-            // may only loot if the player is the loot roundrobin player
-            // or if there are free/quest/conditional item for the player
-            if (loot->roundRobinPlayer.IsEmpty() || loot->roundRobinPlayer == GetGUID())
-                return true;
-
-            return loot->hasItemFor(this);
         case GROUP_LOOT:
-        case NEED_BEFORE_GREED:
             // may only loot if the player is the loot roundrobin player
             // or item over threshold (so roll(s) can be launched)
             // or if there are free/quest/conditional item for the player
@@ -23443,7 +23426,7 @@ void Player::LearnSkillRewardedSpells(uint32 skillId, uint32 skillValue)
 
 void Player::SendAurasForTarget(Unit* target) const
 {
-    if (!target || target->GetVisibleAuras()->empty())                  // speedup things
+    if (!target || target->GetVisibleAuras().empty())                  // speedup things
         return;
 
     /*! Blizz sends certain movement packets sometimes even before CreateObject
@@ -23458,16 +23441,15 @@ void Player::SendAurasForTarget(Unit* target) const
     if (target->HasAuraType(SPELL_AURA_HOVER))
         target->SetHover(true, true);
 
-    Unit::VisibleAuraMap const* visibleAuras = target->GetVisibleAuras();
+    Unit::VisibleAuraContainer const& visibleAuras = target->GetVisibleAuras();
 
     WorldPackets::Spells::AuraUpdate update;
     update.UpdateAll = true;
     update.UnitGUID = target->GetGUID();
-    update.Auras.reserve(visibleAuras->size());
+    update.Auras.reserve(visibleAuras.size());
 
-    for (Unit::VisibleAuraMap::const_iterator itr = visibleAuras->begin(); itr != visibleAuras->end(); ++itr)
+    for (AuraApplication* auraApp : visibleAuras)
     {
-        AuraApplication* auraApp = itr->second;
         WorldPackets::Spells::AuraInfo auraInfo;
         auraApp->BuildUpdatePacket(auraInfo, false);
         update.Auras.push_back(auraInfo);
@@ -26710,6 +26692,7 @@ uint32 Player::CalculateTalentsTiers() const
             break;
         case CLASS_DEMON_HUNTER:
             rowLevels = DHTalentRowLevels;
+            break;
         default:
             rowLevels = DefaultTalentRowLevels;
             break;
