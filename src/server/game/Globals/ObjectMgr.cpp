@@ -1093,7 +1093,7 @@ void ObjectMgr::LoadGameObjectAddons()
 
         if (!gameObjectAddon.ParentRotation.isUnit())
         {
-            TC_LOG_ERROR("sql.sql", "GameObject (GUID: %u) has invalid path rotation, set to default", guid);
+            TC_LOG_ERROR("sql.sql", "GameObject (GUID: %u) has invalid parent rotation in `gameobject_addon`, set to default", guid);
             gameObjectAddon.ParentRotation = G3D::Quat();
         }
 
@@ -7703,7 +7703,7 @@ ResponseCodes ObjectMgr::CheckPlayerName(std::string const& name, LocaleConstant
         if (wname[i] == wname[i-1] && wname[i] == wname[i-2])
             return CHAR_NAME_THREE_CONSECUTIVE;
 
-    return ValidateName(name, locale);
+    return ValidateName(wname, locale);
 }
 
 bool ObjectMgr::IsValidCharterName(const std::string& name)
@@ -7741,7 +7741,7 @@ PetNameInvalidReason ObjectMgr::CheckPetName(const std::string& name, LocaleCons
     if (!isValidString(wname, strictMask, false))
         return PET_NAME_MIXED_LANGUAGES;
 
-    switch (ValidateName(name, locale))
+    switch (ValidateName(wname, locale))
     {
         case CHAR_NAME_PROFANE:
             return PET_NAME_PROFANE;
