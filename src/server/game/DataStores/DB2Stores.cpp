@@ -100,8 +100,8 @@ DB2Storage<ItemArmorTotalEntry>                 sItemArmorTotalStore("ItemArmorT
 DB2Storage<ItemBagFamilyEntry>                  sItemBagFamilyStore("ItemBagFamily.db2", ItemBagFamilyMeta::Instance(), HOTFIX_SEL_ITEM_BAG_FAMILY);
 DB2Storage<ItemBonusEntry>                      sItemBonusStore("ItemBonus.db2", ItemBonusMeta::Instance(), HOTFIX_SEL_ITEM_BONUS);
 DB2Storage<ItemBonusTreeNodeEntry>              sItemBonusTreeNodeStore("ItemBonusTreeNode.db2", ItemBonusTreeNodeMeta::Instance(), HOTFIX_SEL_ITEM_BONUS_TREE_NODE);
-DB2Storage<ItemClassEntry>                      sItemClassStore("ItemClass.db2", ItemClassMeta::Instance(), HOTFIX_SEL_ITEM_CLASS);
 DB2Storage<ItemChildEquipmentEntry>             sItemChildEquipmentStore("ItemChildEquipment.db2", ItemChildEquipmentMeta::Instance(), HOTFIX_SEL_ITEM_CHILD_EQUIPMENT);
+DB2Storage<ItemClassEntry>                      sItemClassStore("ItemClass.db2", ItemClassMeta::Instance(), HOTFIX_SEL_ITEM_CLASS);
 DB2Storage<ItemCurrencyCostEntry>               sItemCurrencyCostStore("ItemCurrencyCost.db2", ItemCurrencyCostMeta::Instance(), HOTFIX_SEL_ITEM_CURRENCY_COST);
 DB2Storage<ItemDamageAmmoEntry>                 sItemDamageAmmoStore("ItemDamageAmmo.db2", ItemDamageAmmoMeta::Instance(), HOTFIX_SEL_ITEM_DAMAGE_AMMO);
 DB2Storage<ItemDamageOneHandEntry>              sItemDamageOneHandStore("ItemDamageOneHand.db2", ItemDamageOneHandMeta::Instance(), HOTFIX_SEL_ITEM_DAMAGE_ONE_HAND);
@@ -120,7 +120,7 @@ DB2Storage<ItemRandomSuffixEntry>               sItemRandomSuffixStore("ItemRand
 DB2Storage<ItemSearchNameEntry>                 sItemSearchNameStore("ItemSearchName.db2", ItemSearchNameMeta::Instance(), HOTFIX_SEL_ITEM_SEARCH_NAME);
 DB2Storage<ItemSetEntry>                        sItemSetStore("ItemSet.db2", ItemSetMeta::Instance(), HOTFIX_SEL_ITEM_SET);
 DB2Storage<ItemSetSpellEntry>                   sItemSetSpellStore("ItemSetSpell.db2", ItemSetSpellMeta::Instance(), HOTFIX_SEL_ITEM_SET_SPELL);
-DB2SparseStorage<ItemSparseEntry>               sItemSparseStore("Item-sparse.db2", ItemSparseMeta::Instance(), HOTFIX_SEL_ITEM_SPARSE);
+DB2Storage<ItemSparseEntry>                     sItemSparseStore("Item-sparse.db2", ItemSparseMeta::Instance(), HOTFIX_SEL_ITEM_SPARSE);
 DB2Storage<ItemSpecEntry>                       sItemSpecStore("ItemSpec.db2", ItemSpecMeta::Instance(), HOTFIX_SEL_ITEM_SPEC);
 DB2Storage<ItemSpecOverrideEntry>               sItemSpecOverrideStore("ItemSpecOverride.db2", ItemSpecOverrideMeta::Instance(), HOTFIX_SEL_ITEM_SPEC_OVERRIDE);
 DB2Storage<ItemUpgradeEntry>                    sItemUpgradeStore("ItemUpgrade.db2", ItemUpgradeMeta::Instance(), HOTFIX_SEL_ITEM_UPGRADE);
@@ -362,8 +362,8 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     LOAD_DB2(sItemBagFamilyStore);
     LOAD_DB2(sItemBonusStore);
     LOAD_DB2(sItemBonusTreeNodeStore);
-    LOAD_DB2(sItemClassStore);
     LOAD_DB2(sItemChildEquipmentStore);
+    LOAD_DB2(sItemClassStore);
     LOAD_DB2(sItemCurrencyCostStore);
     LOAD_DB2(sItemDamageAmmoStore);
     LOAD_DB2(sItemDamageOneHandStore);
@@ -652,8 +652,10 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     for (NamesProfanityEntry const* namesProfanity : sNamesProfanityStore)
     {
         ASSERT(namesProfanity->Language < TOTAL_LOCALES || namesProfanity->Language == -1);
+        std::wstring name;
+        ASSERT(Utf8toWStr(namesProfanity->Name, name));
         if (namesProfanity->Language != -1)
-            _nameValidators[namesProfanity->Language].emplace_back(namesProfanity->Name, std::regex::icase | std::regex::optimize);
+            _nameValidators[namesProfanity->Language].emplace_back(name, std::regex::icase | std::regex::optimize);
         else
         {
             for (uint32 i = 0; i < TOTAL_LOCALES; ++i)
@@ -661,24 +663,30 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
                 if (i == LOCALE_none)
                     continue;
 
-                _nameValidators[i].emplace_back(namesProfanity->Name, std::regex::icase | std::regex::optimize);
+                _nameValidators[i].emplace_back(name, std::regex::icase | std::regex::optimize);
             }
         }
     }
 
     for (NamesReservedEntry const* namesReserved : sNamesReservedStore)
-        _nameValidators[TOTAL_LOCALES].emplace_back(namesReserved->Name, std::regex::icase | std::regex::optimize);
+    {
+        std::wstring name;
+        ASSERT(Utf8toWStr(namesReserved->Name, name));
+        _nameValidators[TOTAL_LOCALES].emplace_back(name, std::regex::icase | std::regex::optimize);
+    }
 
     for (NamesReservedLocaleEntry const* namesReserved : sNamesReservedLocaleStore)
     {
         ASSERT(!(namesReserved->LocaleMask & ~((1 << TOTAL_LOCALES) - 1)));
+        std::wstring name;
+        ASSERT(Utf8toWStr(namesReserved->Name, name));
         for (uint32 i = 0; i < TOTAL_LOCALES; ++i)
         {
             if (i == LOCALE_none)
                 continue;
 
             if (namesReserved->LocaleMask & (1 << i))
-                _nameValidators[i].emplace_back(namesReserved->Name, std::regex::icase | std::regex::optimize);
+                _nameValidators[i].emplace_back(name, std::regex::icase | std::regex::optimize);
         }
     }
 
@@ -1260,14 +1268,14 @@ std::string DB2Manager::GetNameGenEntry(uint8 race, uint8 gender, LocaleConstant
     return data->Str[sWorld->GetDefaultDbcLocale()];
 }
 
-ResponseCodes DB2Manager::ValidateName(std::string const& name, LocaleConstant locale) const
+ResponseCodes DB2Manager::ValidateName(std::wstring const& name, LocaleConstant locale) const
 {
-    for (std::regex const& regex : _nameValidators[locale])
+    for (std::wregex const& regex : _nameValidators[locale])
         if (std::regex_search(name, regex))
             return CHAR_NAME_PROFANE;
 
     // regexes at TOTAL_LOCALES are loaded from NamesReserved which is not locale specific
-    for (std::regex const& regex : _nameValidators[TOTAL_LOCALES])
+    for (std::wregex const& regex : _nameValidators[TOTAL_LOCALES])
         if (std::regex_search(name, regex))
             return CHAR_NAME_RESERVED;
 
@@ -1452,7 +1460,7 @@ bool DB2Manager::IsToyItem(uint32 toy) const
 
 WMOAreaTableEntry const* DB2Manager::GetWMOAreaTable(int32 rootId, int32 adtId, int32 groupId) const
 {
-    auto i = _wmoAreaTableLookup.find(WMOAreaTableKey(int8(rootId), int16(adtId), groupId));
+    auto i = _wmoAreaTableLookup.find(WMOAreaTableKey(int16(rootId), int8(adtId), groupId));
     if (i != _wmoAreaTableLookup.end())
         return i->second;
 
