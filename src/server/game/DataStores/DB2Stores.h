@@ -28,6 +28,11 @@ TC_GAME_API extern DB2Storage<AnimKitEntry>                         sAnimKitStor
 TC_GAME_API extern DB2Storage<AreaTableEntry>                       sAreaTableStore;
 TC_GAME_API extern DB2Storage<AreaTriggerEntry>                     sAreaTriggerStore;
 TC_GAME_API extern DB2Storage<ArmorLocationEntry>                   sArmorLocationStore;
+TC_GAME_API extern DB2Storage<ArtifactEntry>                        sArtifactStore;
+TC_GAME_API extern DB2Storage<ArtifactCategoryEntry>                sArtifactCategoryStore;
+TC_GAME_API extern DB2Storage<ArtifactAppearanceEntry>              sArtifactAppearanceStore;
+TC_GAME_API extern DB2Storage<ArtifactAppearanceSetEntry>           sArtifactAppearanceSetStore;
+TC_GAME_API extern DB2Storage<ArtifactPowerEntry>                   sArtifactPowerStore;
 TC_GAME_API extern DB2Storage<AuctionHouseEntry>                    sAuctionHouseStore;
 TC_GAME_API extern DB2Storage<BankBagSlotPricesEntry>               sBankBagSlotPricesStore;
 TC_GAME_API extern DB2Storage<BannedAddOnsEntry>                    sBannedAddOnsStore;
@@ -86,6 +91,7 @@ TC_GAME_API extern DB2Storage<ImportPriceArmorEntry>                sImportPrice
 TC_GAME_API extern DB2Storage<ImportPriceQualityEntry>              sImportPriceQualityStore;
 TC_GAME_API extern DB2Storage<ImportPriceShieldEntry>               sImportPriceShieldStore;
 TC_GAME_API extern DB2Storage<ImportPriceWeaponEntry>               sImportPriceWeaponStore;
+TC_GAME_API extern DB2Storage<ItemAppearanceEntry>                  sItemAppearanceStore;
 TC_GAME_API extern DB2Storage<ItemArmorQualityEntry>                sItemArmorQualityStore;
 TC_GAME_API extern DB2Storage<ItemArmorShieldEntry>                 sItemArmorShieldStore;
 TC_GAME_API extern DB2Storage<ItemArmorTotalEntry>                  sItemArmorTotalStore;
@@ -207,7 +213,7 @@ struct HotfixNotify
 typedef std::vector<HotfixNotify> HotfixData;
 
 #define DEFINE_DB2_SET_COMPARATOR(structure) \
-    struct structure ## Comparator : public std::binary_function<structure const*, structure const*, bool> \
+    struct structure ## Comparator \
     { \
         bool operator()(structure const* left, structure const* right) const { return Compare(left, right); } \
         static bool Compare(structure const* left, structure const* right); \
@@ -216,20 +222,24 @@ typedef std::vector<HotfixNotify> HotfixData;
 class TC_GAME_API DB2Manager
 {
 public:
-    DEFINE_DB2_SET_COMPARATOR(ChrClassesXPowerTypesEntry);
-    DEFINE_DB2_SET_COMPARATOR(MountTypeXCapabilityEntry);
+    DEFINE_DB2_SET_COMPARATOR(ChrClassesXPowerTypesEntry)
+    DEFINE_DB2_SET_COMPARATOR(MountTypeXCapabilityEntry)
 
     typedef std::map<uint32 /*hash*/, DB2StorageBase*> StorageMap;
     typedef std::unordered_map<uint32 /*areaGroupId*/, std::vector<uint32/*areaId*/>> AreaGroupMemberContainer;
+    typedef std::unordered_map<uint32, std::vector<ArtifactPowerEntry const*>> ArtifactPowersContainer;
+    typedef std::unordered_map<uint32, std::unordered_set<uint32>> ArtifactPowerLinksContainer;
+    typedef std::unordered_map<std::pair<uint32, uint8>, ArtifactPowerRankEntry const*> ArtifactPowerRanksContainer;
     typedef std::unordered_multimap<uint32, CharSectionsEntry const*> CharSectionsContainer;
     typedef std::unordered_map<uint32, CharStartOutfitEntry const*> CharStartOutfitContainer;
     typedef ChrSpecializationEntry const* ChrSpecializationByIndexContainer[MAX_CLASSES + 1][MAX_SPECIALIZATIONS];
+    typedef std::unordered_map<uint32 /*curveID*/, std::vector<CurvePointEntry const*>> CurvePointsContainer;
     typedef std::map<std::tuple<uint32, uint8, uint8, uint8>, EmotesTextSoundEntry const*> EmotesTextSoundContainer;
     typedef std::unordered_map<uint32, std::vector<uint32>> FactionTeamContainer;
-    typedef std::map<uint32 /*curveID*/, std::map<uint32/*index*/, CurvePointEntry const*, std::greater<uint32>>> HeirloomCurvesContainer;
     typedef std::unordered_map<uint32, HeirloomEntry const*> HeirloomItemsContainer;
     typedef std::vector<ItemBonusEntry const*> ItemBonusList;
     typedef std::unordered_map<uint32 /*bonusListId*/, ItemBonusList> ItemBonusListContainer;
+    typedef std::unordered_map<int16, uint32> ItemBonusListLevelDeltaContainer;
     typedef std::unordered_multimap<uint32 /*itemId*/, uint32 /*bonusTreeId*/> ItemToBonusTreeContainer;
     typedef std::unordered_map<uint32 /*itemId*/, ItemChildEquipmentEntry const*> ItemChildEquipmentContainer;
     typedef std::unordered_map<uint32 /*itemId | appearanceMod << 24*/, ItemModifiedAppearanceEntry const*> ItemModifiedAppearanceByItemContainer;
@@ -266,6 +276,9 @@ public:
     time_t GetHotfixDate(uint32 entry, uint32 type) const;
 
     std::vector<uint32> GetAreasForGroup(uint32 areaGroupId) const;
+    std::vector<ArtifactPowerEntry const*> GetArtifactPowers(uint8 artifactId) const;
+    std::unordered_set<uint32> const* GetArtifactPowerLinks(uint32 artifactPowerId) const;
+    ArtifactPowerRankEntry const* GetArtifactPowerRank(uint32 artifactPowerId, uint8 rank) const;
     static char const* GetBroadcastTextValue(BroadcastTextEntry const* broadcastText, LocaleConstant locale = DEFAULT_LOCALE, uint8 gender = GENDER_MALE, bool forceGender = false);
     CharSectionsEntry const* GetCharSectionEntry(uint8 race, CharSectionType genType, uint8 gender, uint8 type, uint8 color) const;
     CharStartOutfitEntry const* GetCharStartOutfitEntry(uint8 race, uint8 class_, uint8 gender) const;
@@ -274,16 +287,18 @@ public:
     static char const* GetChrRaceName(uint8 race, LocaleConstant locale = DEFAULT_LOCALE);
     ChrSpecializationEntry const* GetChrSpecializationByIndex(uint32 class_, uint32 index) const;
     static char const* GetCreatureFamilyPetName(uint32 petfamily, uint32 locale);
+    float GetCurveValueAt(uint32 curveId, float x) const;
     EmotesTextSoundEntry const* GetTextSoundEmoteFor(uint32 emote, uint8 race, uint8 gender, uint8 class_) const;
     std::vector<uint32> const* GetFactionTeamList(uint32 faction) const;
-    uint32 GetHeirloomItemLevel(uint32 curveId, uint32 level) const;
     HeirloomEntry const* GetHeirloomByItemId(uint32 itemId) const;
     ItemBonusList const* GetItemBonusList(uint32 bonusListId) const;
+    uint32 GetItemBonusListForItemLevelDelta(int16 delta) const;
     std::set<uint32> GetItemBonusTree(uint32 itemId, uint32 itemBonusTreeMod) const;
     ItemChildEquipmentEntry const* GetItemChildEquipment(uint32 itemId) const;
     bool HasItemCurrencyCost(uint32 itemId) const { return _itemsWithCurrencyCost.count(itemId) > 0; }
     uint32 GetItemDisplayId(uint32 itemId, uint32 appearanceModId) const;
     ItemModifiedAppearanceEntry const* GetItemModifiedAppearance(uint32 itemId, uint32 appearanceModId) const;
+    ItemModifiedAppearanceEntry const* GetDefaultItemModifiedAppearance(uint32 itemId) const;
     std::vector<ItemSetSpellEntry const*> const* GetItemSetSpells(uint32 itemSetId) const;
     std::vector<ItemSpecOverrideEntry const*> const* GetItemSpecOverrides(uint32 itemId) const;
     static LfgDungeonsEntry const* GetLfgDungeon(uint32 mapId, Difficulty difficulty);
@@ -322,19 +337,24 @@ private:
     HotfixData _hotfixData;
 
     AreaGroupMemberContainer _areaGroupMembers;
+    ArtifactPowersContainer _artifactPowers;
+    ArtifactPowerLinksContainer _artifactPowerLinks;
+    ArtifactPowerRanksContainer _artifactPowerRanks;
     CharSectionsContainer _charSections;
     CharStartOutfitContainer _charStartOutfits;
     uint32 _powersByClass[MAX_CLASSES][MAX_POWERS];
     ChrSpecializationByIndexContainer _chrSpecializationsByIndex;
+    CurvePointsContainer _curvePoints;
     EmotesTextSoundContainer _emoteTextSounds;
     FactionTeamContainer _factionTeams;
     HeirloomItemsContainer _heirlooms;
-    HeirloomCurvesContainer _heirloomCurvePoints;
     ItemBonusListContainer _itemBonusLists;
+    ItemBonusListLevelDeltaContainer _itemLevelDeltaToBonusListContainer;
     ItemBonusTreeContainer _itemBonusTrees;
     ItemChildEquipmentContainer _itemChildEquipment;
     std::unordered_set<uint32> _itemsWithCurrencyCost;
     ItemModifiedAppearanceByItemContainer _itemModifiedAppearancesByItem;
+    ItemModifiedAppearanceByItemContainer _itemDefaultAppearancesByItem;
     ItemToBonusTreeContainer _itemToBonusTree;
     ItemSetSpellContainer _itemSetSpells;
     ItemSpecOverridesContainer _itemSpecOverrides;
