@@ -256,7 +256,6 @@ Player::Player(WorldSession* session) : Unit(true)
     m_prevMapDifficulty = DIFFICULTY_NORMAL_RAID;
 
     m_lastPotionId = 0;
-    _talentMgr = new PlayerTalentInfo();
 
     for (uint8 i = 0; i < BASEMOD_END; ++i)
     {
@@ -351,8 +350,6 @@ Player::~Player()
 
     for (PlayerSpellMap::const_iterator itr = m_spells.begin(); itr != m_spells.end(); ++itr)
         delete itr->second;
-
-    delete _talentMgr;
 
     //all mailed items should be deleted, also all mail should be deallocated
     for (PlayerMails::iterator itr = m_mail.begin(); itr != m_mail.end(); ++itr)
@@ -4074,6 +4071,10 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             trans->Append(stmt);
 
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GUILD_BANK_EVENTLOG_BY_PLAYER);
+            stmt->setUInt64(0, guid);
+            trans->Append(stmt);
+
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_GLYPHS);
             stmt->setUInt64(0, guid);
             trans->Append(stmt);
 
@@ -8475,7 +8476,7 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
         WorldPackets::Loot::LootResponse packet;
         packet.LootObj = guid;
         packet.Owner = loot->GetGUID();
-        packet.LootMethod = _lootMethod;
+        packet._LootMethod = _lootMethod;
         packet.AcquireReason = loot_type;
         packet.Acquired = true; // false == No Loot (this too^^)
         loot->BuildLootResponse(packet, this, permission);
@@ -9242,54 +9243,6 @@ void Player::ResetPetTalents()
 /*********************************************************/
 /***                    STORAGE SYSTEM                 ***/
 /*********************************************************/
-
-void Player::SetVirtualItemSlot(uint8 i, Item* item)
-{
-    ASSERT(i < 3);
-    if (i < 2 && item)
-    {
-        if (!item->GetEnchantmentId(TEMP_ENCHANTMENT_SLOT))
-            return;
-        uint32 charges = item->GetEnchantmentCharges(TEMP_ENCHANTMENT_SLOT);
-        if (charges == 0)
-            return;
-        if (charges > 1)
-            item->SetEnchantmentCharges(TEMP_ENCHANTMENT_SLOT, charges-1);
-        else if (charges <= 1)
-        {
-            ApplyEnchantment(item, TEMP_ENCHANTMENT_SLOT, false);
-            item->ClearEnchantment(TEMP_ENCHANTMENT_SLOT);
-        }
-    }
-}
-
-void Player::SetSheath(SheathState sheathed)
-{
-    switch (sheathed)
-    {
-        case SHEATH_STATE_UNARMED:                          // no prepared weapon
-            SetVirtualItemSlot(0, nullptr);
-            SetVirtualItemSlot(1, nullptr);
-            SetVirtualItemSlot(2, nullptr);
-            break;
-        case SHEATH_STATE_MELEE:                            // prepared melee weapon
-            SetVirtualItemSlot(0, GetWeaponForAttack(BASE_ATTACK, true));
-            SetVirtualItemSlot(1, GetWeaponForAttack(OFF_ATTACK, true));
-            SetVirtualItemSlot(2, nullptr);
-            break;
-        case SHEATH_STATE_RANGED:                           // prepared ranged weapon
-            SetVirtualItemSlot(0, nullptr);
-            SetVirtualItemSlot(1, nullptr);
-            SetVirtualItemSlot(2, GetWeaponForAttack(RANGED_ATTACK, true));
-            break;
-        default:
-            SetVirtualItemSlot(0, nullptr);
-            SetVirtualItemSlot(1, nullptr);
-            SetVirtualItemSlot(2, nullptr);
-            break;
-    }
-    Unit::SetSheath(sheathed);                              // this must visualize Sheath changing for other players...
-}
 
 uint8 Player::FindEquipSlot(ItemTemplate const* proto, uint32 slot, bool swap) const
 {
@@ -11708,7 +11661,7 @@ Item* Player::_StoreItem(uint16 pos, Item* pItem, uint32 count, bool clone, bool
 
         const ItemTemplate* proto = pItem->GetTemplate();
         for (uint8 i = 0; i < proto->Effects.size(); ++i)
-            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_NO_DELAY_USE) // On obtain trigger
+            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_OBTAIN) // On obtain trigger
                 if (bag == INVENTORY_SLOT_BAG_0 || (bag >= INVENTORY_SLOT_BAG_START && bag < INVENTORY_SLOT_BAG_END))
                     if (!HasAura(proto->Effects[i]->SpellID))
                         CastSpell(this, proto->Effects[i]->SpellID, true, pItem);
@@ -11751,7 +11704,7 @@ Item* Player::_StoreItem(uint16 pos, Item* pItem, uint32 count, bool clone, bool
 
         const ItemTemplate* proto = pItem2->GetTemplate();
         for (uint8 i = 0; i < proto->Effects.size(); ++i)
-            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_NO_DELAY_USE) // On obtain trigger
+            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_OBTAIN) // On obtain trigger
                 if (bag == INVENTORY_SLOT_BAG_0 || (bag >= INVENTORY_SLOT_BAG_START && bag < INVENTORY_SLOT_BAG_END))
                     if (!HasAura(proto->Effects[i]->SpellID))
                         CastSpell(this, proto->Effects[i]->SpellID, true, pItem2);
@@ -12207,7 +12160,7 @@ void Player::DestroyItem(uint8 bag, uint8 slot, bool update)
 
         const ItemTemplate* proto = pItem->GetTemplate();
         for (uint8 i = 0; i < proto->Effects.size(); ++i)
-            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_NO_DELAY_USE) // On obtain trigger
+            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_OBTAIN) // On obtain trigger
                 RemoveAurasDueToSpell(proto->Effects[i]->SpellID);
 
         ItemRemovedQuestCheck(pItem->GetEntry(), pItem->GetCount());
@@ -17686,7 +17639,9 @@ bool Player::LoadFromDB(ObjectGuid guid, SQLQueryHolder *holder)
 
     LearnSpecializationSpells();
 
+    _LoadGlyphs(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_GLYPHS));
     _LoadAuras(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURAS), holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURA_EFFECTS), time_diff);
+    _LoadGlyphAuras();
     // add ghost flag (must be after aura load: PLAYER_FLAGS_GHOST set in aura)
     if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
         m_deathState = DEAD;
@@ -18048,6 +18003,12 @@ void Player::_LoadAuras(PreparedQueryResult auraResult, PreparedQueryResult effe
         }
         while (auraResult->NextRow());
     }
+}
+
+void Player::_LoadGlyphAuras()
+{
+    for (uint32 glyphId : GetGlyphs(GetActiveTalentGroup()))
+        CastSpell(this, sGlyphPropertiesStore.AssertEntry(glyphId)->SpellID, true);
 }
 
 void Player::LoadCorpse(PreparedQueryResult result)
@@ -19705,6 +19666,7 @@ void Player::SaveToDB(bool create /*=false*/)
     _SaveWeeklyQuestStatus(trans);
     _SaveSeasonalQuestStatus(trans);
     _SaveMonthlyQuestStatus(trans);
+    _SaveGlyphs(trans);
     _SaveTalents(trans);
     _SaveSpells(trans);
     GetSpellHistory()->SaveToDB<Player>(trans);
@@ -23126,6 +23088,17 @@ void Player::SendInitialPacketsBeforeAddToMap()
     GetSpellHistory()->WritePacket(&sendSpellCharges);
     SendDirectMessage(sendSpellCharges.Write());
 
+    WorldPackets::Talent::ActiveGlyphs activeGlyphs;
+    activeGlyphs.Glyphs.reserve(GetGlyphs(GetActiveTalentGroup()).size());
+    for (uint32 glyphId : GetGlyphs(GetActiveTalentGroup()))
+        if (std::vector<uint32> const* bindableSpells = sDB2Manager.GetGlyphBindableSpells(glyphId))
+            for (uint32 bindableSpell : *bindableSpells)
+                if (HasSpell(bindableSpell) && m_overrideSpells.find(bindableSpell) == m_overrideSpells.end())
+                    activeGlyphs.Glyphs.emplace_back(uint32(bindableSpell), uint16(glyphId));
+
+    activeGlyphs.IsFullUpdate = true;
+    SendDirectMessage(activeGlyphs.Write());
+
     /// SMSG_ACTION_BUTTONS
     SendInitialActionButtons();
 
@@ -23300,7 +23273,7 @@ void Player::ApplyEquipCooldown(Item* pItem)
     {
         ItemEffectEntry const* effectData = proto->Effects[i];
 
-        // wrong triggering type (note: ITEM_SPELLTRIGGER_ON_NO_DELAY_USE not have cooldown)
+        // wrong triggering type
         if (effectData->Trigger != ITEM_SPELLTRIGGER_ON_USE)
             continue;
 
@@ -25930,6 +25903,51 @@ void Player::SetMap(Map* map)
     m_mapRef.link(map, this);
 }
 
+void Player::_LoadGlyphs(PreparedQueryResult result)
+{
+    // SELECT talentGroup, glyphId from character_glyphs WHERE guid = ?
+    if (!result)
+        return;
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint8 spec = fields[0].GetUInt8();
+        if (spec >= MAX_SPECIALIZATIONS || !sDB2Manager.GetChrSpecializationByIndex(getClass(), spec))
+            continue;
+
+        uint16 glyphId = fields[1].GetUInt16();
+        if (!sGlyphPropertiesStore.LookupEntry(glyphId))
+            continue;
+
+        GetGlyphs(spec).push_back(glyphId);
+
+    } while (result->NextRow());
+}
+
+void Player::_SaveGlyphs(SQLTransaction& trans) const
+{
+    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_GLYPHS);
+    stmt->setUInt64(0, GetGUID().GetCounter());
+    trans->Append(stmt);
+
+    for (uint8 spec = 0; spec < MAX_SPECIALIZATIONS; ++spec)
+    {
+        for (uint32 glyphId : GetGlyphs(spec))
+        {
+            uint8 index = 0;
+
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHAR_GLYPHS);
+            stmt->setUInt64(index++, GetGUID().GetCounter());
+            stmt->setUInt8(index++, spec);
+            stmt->setUInt16(index++, uint16(glyphId));
+
+            trans->Append(stmt);
+        }
+    }
+}
+
 void Player::_LoadTalents(PreparedQueryResult result)
 {
     // SetPQuery(PLAYER_LOGIN_QUERY_LOADTALENTS, "SELECT spell, spec FROM character_talent WHERE guid = '%u'", GUID_LOPART(m_guid));
@@ -26033,6 +26051,9 @@ void Player::ActivateTalentGroup(ChrSpecializationEntry const* spec)
     // Remove spec specific spells
     RemoveSpecializationSpells();
 
+    for (uint32 glyphId : GetGlyphs(GetActiveTalentGroup()))
+        RemoveAurasDueToSpell(sGlyphPropertiesStore.AssertEntry(glyphId)->SpellID);
+
     SetActiveTalentGroup(spec->OrderIndex);
     SetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID, spec->ID);
     if (!GetPrimarySpecialization())
@@ -26089,6 +26110,20 @@ void Player::ActivateTalentGroup(ChrSpecializationEntry const* spec)
     for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
         if (Item* equippedItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
             SetVisibleItemSlot(i, equippedItem);
+
+    for (uint32 glyphId : GetGlyphs(spec->OrderIndex))
+        CastSpell(this, sGlyphPropertiesStore.AssertEntry(glyphId)->SpellID, true);
+
+    WorldPackets::Talent::ActiveGlyphs activeGlyphs;
+    activeGlyphs.Glyphs.reserve(GetGlyphs(spec->OrderIndex).size());
+    for (uint32 glyphId : GetGlyphs(spec->OrderIndex))
+        if (std::vector<uint32> const* bindableSpells = sDB2Manager.GetGlyphBindableSpells(glyphId))
+            for (uint32 bindableSpell : *bindableSpells)
+                if (HasSpell(bindableSpell) && m_overrideSpells.find(bindableSpell) == m_overrideSpells.end())
+                    activeGlyphs.Glyphs.emplace_back(uint32(bindableSpell), uint16(glyphId));
+
+    activeGlyphs.IsFullUpdate = true;
+    SendDirectMessage(activeGlyphs.Write());
 }
 
 void Player::ResetTimeSync()
