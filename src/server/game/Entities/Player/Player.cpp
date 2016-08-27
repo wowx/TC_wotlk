@@ -256,7 +256,6 @@ Player::Player(WorldSession* session) : Unit(true)
     m_prevMapDifficulty = DIFFICULTY_NORMAL_RAID;
 
     m_lastPotionId = 0;
-    _talentMgr = new PlayerTalentInfo();
 
     for (uint8 i = 0; i < BASEMOD_END; ++i)
     {
@@ -351,8 +350,6 @@ Player::~Player()
 
     for (PlayerSpellMap::const_iterator itr = m_spells.begin(); itr != m_spells.end(); ++itr)
         delete itr->second;
-
-    delete _talentMgr;
 
     //all mailed items should be deleted, also all mail should be deallocated
     for (PlayerMails::iterator itr = m_mail.begin(); itr != m_mail.end(); ++itr)
@@ -1141,7 +1138,7 @@ void Player::Update(uint32 p_time)
                 }
             }
 
-            if (haveOffhandWeapon() && isAttackReady(OFF_ATTACK))
+            if (!IsInFeralForm() && haveOffhandWeapon() && isAttackReady(OFF_ATTACK))
             {
                 if (!IsWithinMeleeRange(victim))
                     setAttackTimer(OFF_ATTACK, 100);
@@ -4012,6 +4009,18 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             stmt->setUInt64(0, guid);
             trans->Append(stmt);
 
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE_ARTIFACT_BY_OWNER);
+            stmt->setUInt64(0, guid);
+            trans->Append(stmt);
+
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE_ARTIFACT_POWERS_BY_OWNER);
+            stmt->setUInt64(0, guid);
+            trans->Append(stmt);
+
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE_MODIFIERS_BY_OWNER);
+            stmt->setUInt64(0, guid);
+            trans->Append(stmt);
+
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_ITEM_INSTANCE_BY_OWNER);
             stmt->setUInt64(0, guid);
             trans->Append(stmt);
@@ -4062,6 +4071,10 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
             trans->Append(stmt);
 
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GUILD_BANK_EVENTLOG_BY_PLAYER);
+            stmt->setUInt64(0, guid);
+            trans->Append(stmt);
+
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_GLYPHS);
             stmt->setUInt64(0, guid);
             trans->Append(stmt);
 
@@ -7212,6 +7225,7 @@ void Player::_ApplyItemMods(Item* item, uint8 slot, bool apply)
 
     _ApplyItemBonuses(item, slot, apply);
     ApplyItemEquipSpell(item, apply);
+    ApplyArtifactPowers(item, apply);
     ApplyEnchantment(item, apply);
 
     TC_LOG_DEBUG("entities.player.items", "Player::_ApplyItemMods: completed");
@@ -7488,7 +7502,8 @@ void Player::_ApplyWeaponDamage(uint8 slot, Item* item, bool apply)
         SetBaseWeaponDamage(attType, MAXDAMAGE, damage);
     }
 
-    if (proto->GetDelay() && !IsInFeralForm())
+    SpellShapeshiftFormEntry const* shapeshift = sSpellShapeshiftFormStore.LookupEntry(GetShapeshiftForm());
+    if (proto->GetDelay() && !(shapeshift && shapeshift->CombatRoundTime))
         SetAttackTime(attType, apply ? proto->GetDelay() : BASE_ATTACK_TIME);
 
     if (CanModifyStats() && (damage || proto->GetDelay()))
@@ -7681,6 +7696,80 @@ void Player::UpdateItemSetAuras(bool formChange /*= false*/)
             }
         }
     }
+}
+
+void Player::ApplyArtifactPowers(Item* item, bool apply)
+{
+    for (ItemDynamicFieldArtifactPowers const& artifactPower : item->GetArtifactPowers())
+    {
+        uint8 rank = artifactPower.CurrentRankWithBonus;
+        if (!rank)
+            continue;
+
+        ArtifactPowerRankEntry const* artifactPowerRank = sDB2Manager.GetArtifactPowerRank(artifactPower.ArtifactPowerId, rank - 1);
+        if (!artifactPowerRank)
+            continue;
+
+        ApplyArtifactPowerRank(item, artifactPowerRank, apply);
+    }
+}
+
+void Player::ApplyArtifactPowerRank(Item* artifact, ArtifactPowerRankEntry const* artifactPowerRank, bool apply)
+{
+    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(artifactPowerRank->SpellID);
+    if (!spellInfo)
+        return;
+
+    if (spellInfo->IsPassive())
+    {
+        AuraApplication* powerAura = GetAuraApplication(artifactPowerRank->SpellID, ObjectGuid::Empty, artifact->GetGUID());
+        if (powerAura)
+        {
+            if (apply)
+            {
+                for (AuraEffect* auraEffect : powerAura->GetBase()->GetAuraEffects())
+                {
+                    if (!auraEffect)
+                        continue;
+
+                    if (powerAura->HasEffect(auraEffect->GetEffIndex()))
+                        auraEffect->ChangeAmount(artifactPowerRank->Value ? artifactPowerRank->Value : auraEffect->GetSpellEffectInfo()->CalcValue());
+                }
+            }
+            else
+                RemoveAura(powerAura);
+        }
+        else if (apply)
+        {
+            CustomSpellValues csv;
+            if (artifactPowerRank->Value)
+                for (uint32 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+                    if (spellInfo->GetEffect(i))
+                        csv.AddSpellMod(SpellValueMod(SPELLVALUE_BASE_POINT0 + i), artifactPowerRank->Value);
+
+            CastCustomSpell(artifactPowerRank->SpellID, csv, this, TRIGGERED_FULL_MASK, artifact);
+        }
+    }
+    else
+    {
+        if (apply && !HasSpell(artifactPowerRank->SpellID))
+        {
+            AddTemporarySpell(artifactPowerRank->SpellID);
+            WorldPackets::Spells::LearnedSpells learnedSpells;
+            learnedSpells.SuppressMessaging = true;
+            learnedSpells.SpellID.push_back(artifactPowerRank->SpellID);
+            SendDirectMessage(learnedSpells.Write());
+        }
+        else if (!apply)
+        {
+            RemoveTemporarySpell(artifactPowerRank->SpellID);
+            WorldPackets::Spells::UnlearnedSpells unlearnedSpells;
+            unlearnedSpells.SuppressMessaging = true;
+            unlearnedSpells.SpellID.push_back(artifactPowerRank->SpellID);
+            SendDirectMessage(unlearnedSpells.Write());
+        }
+    }
+
 }
 
 void Player::CastItemCombatSpell(Unit* target, WeaponAttackType attType, uint32 procVictim, uint32 procEx)
@@ -7944,6 +8033,7 @@ void Player::_RemoveAllItemMods()
 
             ApplyItemEquipSpell(m_items[i], false);
             ApplyEnchantment(m_items[i], false);
+            ApplyArtifactPowers(m_items[i], false);
         }
     }
 
@@ -8000,6 +8090,7 @@ void Player::_ApplyAllItemMods()
                 continue;
 
             ApplyItemEquipSpell(m_items[i], true);
+            ApplyArtifactPowers(m_items[i], true);
             ApplyEnchantment(m_items[i], true);
         }
     }
@@ -8385,7 +8476,7 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
         WorldPackets::Loot::LootResponse packet;
         packet.LootObj = guid;
         packet.Owner = loot->GetGUID();
-        packet.LootMethod = _lootMethod;
+        packet._LootMethod = _lootMethod;
         packet.AcquireReason = loot_type;
         packet.Acquired = true; // false == No Loot (this too^^)
         loot->BuildLootResponse(packet, this, permission);
@@ -9030,11 +9121,11 @@ void Player::SendInitWorldStates(uint32 zoneid, uint32 areaid)
         case 5389:
             if (sWorld->getBoolConfig(CONFIG_TOLBARAD_ENABLE))
             {
-                packet.Worldstates.emplace_back(5385, sWorld->getWorldState(5385)); // TB_WS_ALLIANCE_CONTROLS_SHOW
-                packet.Worldstates.emplace_back(5384, sWorld->getWorldState(5384)); // TB_WS_HORDE_CONTROLS_SHOW
-                packet.Worldstates.emplace_back(5387, sWorld->getWorldState(5387)); // TB_WS_TIME_NEXT_BATTLE_SHOW
-                packet.Worldstates.emplace_back(5546, sWorld->getWorldState(5546)); // TB_WS_ALLIANCE_ATTACKING_SHOW
-                packet.Worldstates.emplace_back(5547, sWorld->getWorldState(5547)); // TB_WS_HORDE_ATTACKING_SHOW
+                packet.Worldstates.emplace_back(5385u, sWorld->getWorldState(5385)); // TB_WS_ALLIANCE_CONTROLS_SHOW
+                packet.Worldstates.emplace_back(5384u, sWorld->getWorldState(5384)); // TB_WS_HORDE_CONTROLS_SHOW
+                packet.Worldstates.emplace_back(5387u, sWorld->getWorldState(5387)); // TB_WS_TIME_NEXT_BATTLE_SHOW
+                packet.Worldstates.emplace_back(5546u, sWorld->getWorldState(5546)); // TB_WS_ALLIANCE_ATTACKING_SHOW
+                packet.Worldstates.emplace_back(5547u, sWorld->getWorldState(5547)); // TB_WS_HORDE_ATTACKING_SHOW
             }
             break;
         // Tol Barad
@@ -9152,54 +9243,6 @@ void Player::ResetPetTalents()
 /*********************************************************/
 /***                    STORAGE SYSTEM                 ***/
 /*********************************************************/
-
-void Player::SetVirtualItemSlot(uint8 i, Item* item)
-{
-    ASSERT(i < 3);
-    if (i < 2 && item)
-    {
-        if (!item->GetEnchantmentId(TEMP_ENCHANTMENT_SLOT))
-            return;
-        uint32 charges = item->GetEnchantmentCharges(TEMP_ENCHANTMENT_SLOT);
-        if (charges == 0)
-            return;
-        if (charges > 1)
-            item->SetEnchantmentCharges(TEMP_ENCHANTMENT_SLOT, charges-1);
-        else if (charges <= 1)
-        {
-            ApplyEnchantment(item, TEMP_ENCHANTMENT_SLOT, false);
-            item->ClearEnchantment(TEMP_ENCHANTMENT_SLOT);
-        }
-    }
-}
-
-void Player::SetSheath(SheathState sheathed)
-{
-    switch (sheathed)
-    {
-        case SHEATH_STATE_UNARMED:                          // no prepared weapon
-            SetVirtualItemSlot(0, nullptr);
-            SetVirtualItemSlot(1, nullptr);
-            SetVirtualItemSlot(2, nullptr);
-            break;
-        case SHEATH_STATE_MELEE:                            // prepared melee weapon
-            SetVirtualItemSlot(0, GetWeaponForAttack(BASE_ATTACK, true));
-            SetVirtualItemSlot(1, GetWeaponForAttack(OFF_ATTACK, true));
-            SetVirtualItemSlot(2, nullptr);
-            break;
-        case SHEATH_STATE_RANGED:                           // prepared ranged weapon
-            SetVirtualItemSlot(0, nullptr);
-            SetVirtualItemSlot(1, nullptr);
-            SetVirtualItemSlot(2, GetWeaponForAttack(RANGED_ATTACK, true));
-            break;
-        default:
-            SetVirtualItemSlot(0, nullptr);
-            SetVirtualItemSlot(1, nullptr);
-            SetVirtualItemSlot(2, nullptr);
-            break;
-    }
-    Unit::SetSheath(sheathed);                              // this must visualize Sheath changing for other players...
-}
 
 uint8 Player::FindEquipSlot(ItemTemplate const* proto, uint32 slot, bool swap) const
 {
@@ -9593,7 +9636,7 @@ Item* Player::GetWeaponForAttack(WeaponAttackType attackType, bool useable /*= f
     if (!useable)
         return item;
 
-    if (item->IsBroken() || IsInFeralForm())
+    if (item->IsBroken())
         return nullptr;
 
     return item;
@@ -10971,9 +11014,14 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16 &dest, Item* pItem, bool
                 // Do not allow polearm to be equipped in the offhand (rare case for the only 1h polearm 41750)
                 if (type == INVTYPE_WEAPON && pProto->GetSubClass() == ITEM_SUBCLASS_WEAPON_POLEARM)
                     return EQUIP_ERR_2HSKILLNOTFOUND;
-                else if (type == INVTYPE_WEAPON || type == INVTYPE_WEAPONOFFHAND)
+                else if (type == INVTYPE_WEAPON)
                 {
                     if (!CanDualWield())
+                        return EQUIP_ERR_2HSKILLNOTFOUND;
+                }
+                else if (type == INVTYPE_WEAPONOFFHAND)
+                {
+                    if (!CanDualWield() && !(pProto->GetFlags3() & ITEM_FLAG3_DUAL_WIELD_NOT_REQUIRED))
                         return EQUIP_ERR_2HSKILLNOTFOUND;
                 }
                 else if (type == INVTYPE_2HWEAPON)
@@ -11387,6 +11435,10 @@ InventoryResult Player::CanUseItem(ItemTemplate const* proto) const
             if (HasSpell(proto->Effects[1]->SpellID))
                 return EQUIP_ERR_INTERNAL_BAG_ERROR;
 
+    if (ArtifactEntry const* artifact = sArtifactStore.LookupEntry(proto->GetArtifactID()))
+        if (artifact->SpecID != GetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID))
+            return EQUIP_ERR_CANT_USE_ITEM;
+
     return EQUIP_ERR_OK;
 }
 
@@ -11515,10 +11567,12 @@ Item* Player::StoreNewItem(ItemPosCountVec const& pos, uint32 itemId, bool updat
                 {
                     childItem->SetGuidValue(ITEM_FIELD_CREATOR, item->GetGUID());
                     childItem->SetFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_CHILD);
+                    item->SetChildItem(childItem->GetGUID());
                 }
             }
         }
     }
+
     return item;
 }
 
@@ -11607,7 +11661,7 @@ Item* Player::_StoreItem(uint16 pos, Item* pItem, uint32 count, bool clone, bool
 
         const ItemTemplate* proto = pItem->GetTemplate();
         for (uint8 i = 0; i < proto->Effects.size(); ++i)
-            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_NO_DELAY_USE) // On obtain trigger
+            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_OBTAIN) // On obtain trigger
                 if (bag == INVENTORY_SLOT_BAG_0 || (bag >= INVENTORY_SLOT_BAG_START && bag < INVENTORY_SLOT_BAG_END))
                     if (!HasAura(proto->Effects[i]->SpellID))
                         CastSpell(this, proto->Effects[i]->SpellID, true, pItem);
@@ -11650,7 +11704,7 @@ Item* Player::_StoreItem(uint16 pos, Item* pItem, uint32 count, bool clone, bool
 
         const ItemTemplate* proto = pItem2->GetTemplate();
         for (uint8 i = 0; i < proto->Effects.size(); ++i)
-            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_NO_DELAY_USE) // On obtain trigger
+            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_OBTAIN) // On obtain trigger
                 if (bag == INVENTORY_SLOT_BAG_0 || (bag >= INVENTORY_SLOT_BAG_START && bag < INVENTORY_SLOT_BAG_END))
                     if (!HasAura(proto->Effects[i]->SpellID))
                         CastSpell(this, proto->Effects[i]->SpellID, true, pItem2);
@@ -12106,7 +12160,7 @@ void Player::DestroyItem(uint8 bag, uint8 slot, bool update)
 
         const ItemTemplate* proto = pItem->GetTemplate();
         for (uint8 i = 0; i < proto->Effects.size(); ++i)
-            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_NO_DELAY_USE) // On obtain trigger
+            if (proto->Effects[i]->Trigger == ITEM_SPELLTRIGGER_ON_OBTAIN) // On obtain trigger
                 RemoveAurasDueToSpell(proto->Effects[i]->SpellID);
 
         ItemRemovedQuestCheck(pItem->GetEntry(), pItem->GetCount());
@@ -17585,7 +17639,9 @@ bool Player::LoadFromDB(ObjectGuid guid, SQLQueryHolder *holder)
 
     LearnSpecializationSpells();
 
+    _LoadGlyphs(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_GLYPHS));
     _LoadAuras(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURAS), holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_AURA_EFFECTS), time_diff);
+    _LoadGlyphAuras();
     // add ghost flag (must be after aura load: PLAYER_FLAGS_GHOST set in aura)
     if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
         m_deathState = DEAD;
@@ -17608,7 +17664,7 @@ bool Player::LoadFromDB(ObjectGuid guid, SQLQueryHolder *holder)
     // must be before inventory (some items required reputation check)
     m_reputationMgr->LoadFromDB(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_REPUTATION));
 
-    _LoadInventory(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_INVENTORY), time_diff);
+    _LoadInventory(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_INVENTORY), holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_ARTIFACTS), time_diff);
 
     if (IsVoidStorageUnlocked())
         _LoadVoidStorage(holder->GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_VOID_STORAGE));
@@ -17949,6 +18005,12 @@ void Player::_LoadAuras(PreparedQueryResult auraResult, PreparedQueryResult effe
     }
 }
 
+void Player::_LoadGlyphAuras()
+{
+    for (uint32 glyphId : GetGlyphs(GetActiveTalentGroup()))
+        CastSpell(this, sGlyphPropertiesStore.AssertEntry(glyphId)->SpellID, true);
+}
+
 void Player::LoadCorpse(PreparedQueryResult result)
 {
     if (IsAlive() || HasAtLoginFlag(AT_LOGIN_RESURRECT))
@@ -17969,7 +18031,7 @@ void Player::LoadCorpse(PreparedQueryResult result)
     RemoveAtLoginFlag(AT_LOGIN_RESURRECT);
 }
 
-void Player::_LoadInventory(PreparedQueryResult result, uint32 timeDiff)
+void Player::_LoadInventory(PreparedQueryResult result, PreparedQueryResult artifactsResult, uint32 timeDiff)
 {
     //           0          1            2                3      4         5        6      7             8                 9          10          11    12
     // SELECT guid, itemEntry, creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, playedTime, text,
@@ -17979,12 +18041,39 @@ void Player::_LoadInventory(PreparedQueryResult result, uint32 timeDiff)
     //        itemModifiedAppearanceAllSpecs, itemModifiedAppearanceSpec1, itemModifiedAppearanceSpec2, itemModifiedAppearanceSpec3, itemModifiedAppearanceSpec4,
     //                                  24                        25                          26                         27                         28
     //        spellItemEnchantmentAllSpecs, spellItemEnchantmentSpec1, spellItemEnchantmentSpec2, spellItemEnchantmentSpec3, spellItemEnchantmentSpec4,
-    //                29           30           31          32           33           34          35           36           37   38    39
+    //                29           30           31          32           33           34          35           36           37   40    41
     //        gemItemId1, gemBonuses1, gemContext1, gemItemId2, gemBonuses2, gemContext2, gemItemId3, gemBonuses3, gemContext3, bag, slot FROM character_inventory ci JOIN item_instance ii ON ci.item = ii.guid WHERE ci.guid = ? ORDER BY bag, slot
     //NOTE: the "order by `bag`" is important because it makes sure
     //the bagMap is filled before items in the bags are loaded
     //NOTE2: the "order by `slot`" is needed because mainhand weapons are (wrongly?)
     //expected to be equipped before offhand items (@todo fixme)
+
+    //                 0     1                       2                   3                 4
+    // SELECT a.itemGuid, a.xp, a.artifactAppearanceId, ap.artifactPowerId, ap.purchasedRank FROM item_instance_artifact_powers ap LEFT JOIN item_instance_artifact a ON ap.itemGuid = a.itemGuid INNER JOIN character_inventory ci ON ci.item = ap.guid WHERE ci.guid = ?
+    std::unordered_map<ObjectGuid, std::tuple<uint32, uint32, std::vector<ItemDynamicFieldArtifactPowers>>> artifactData;
+    if (artifactsResult)
+    {
+        do
+        {
+            Field* fields = artifactsResult->Fetch();
+            auto& artifactDataEntry = artifactData[ObjectGuid::Create<HighGuid::Item>(fields[0].GetUInt64())];
+            std::get<0>(artifactDataEntry) = fields[1].GetUInt32();
+            std::get<1>(artifactDataEntry) = fields[2].GetUInt32();
+            ItemDynamicFieldArtifactPowers artifactPowerData;
+            artifactPowerData.ArtifactPowerId = fields[3].GetUInt32();
+            artifactPowerData.PurchasedRank = fields[4].GetUInt8();
+            if (ArtifactPowerEntry const* artifactPower = sArtifactPowerStore.LookupEntry(artifactPowerData.ArtifactPowerId))
+            {
+                if (artifactPowerData.PurchasedRank > artifactPower->MaxRank)
+                    artifactPowerData.PurchasedRank = artifactPower->MaxRank;
+
+                artifactPowerData.CurrentRankWithBonus = (artifactPower->Flags & ARTIFACT_POWER_FLAG_FIRST) ? 1 : 0;
+
+                std::get<2>(artifactDataEntry).push_back(artifactPowerData);
+            }
+
+        } while (artifactsResult->NextRow());
+    }
 
     if (result)
     {
@@ -18003,8 +18092,12 @@ void Player::_LoadInventory(PreparedQueryResult result, uint32 timeDiff)
             Field* fields = result->Fetch();
             if (Item* item = _LoadItem(trans, zoneId, timeDiff, fields))
             {
-                ObjectGuid bagGuid = fields[38].GetUInt64() ? ObjectGuid::Create<HighGuid::Item>(fields[38].GetUInt64()) : ObjectGuid::Empty;
-                uint8 slot = fields[39].GetUInt8();
+                auto artifactDataItr = artifactData.find(item->GetGUID());
+                if (item->GetTemplate()->GetArtifactID() && artifactDataItr != artifactData.end())
+                    item->LoadArtifactData(std::get<0>(artifactDataItr->second), std::get<1>(artifactDataItr->second), std::get<2>(artifactDataItr->second));
+
+                ObjectGuid bagGuid = fields[40].GetUInt64() ? ObjectGuid::Create<HighGuid::Item>(fields[40].GetUInt64()) : ObjectGuid::Empty;
+                uint8 slot = fields[41].GetUInt8();
 
                 GetSession()->GetCollectionMgr()->CheckHeirloomUpgrades(item);
                 GetSession()->GetCollectionMgr()->AddItemAppearance(item);
@@ -18079,7 +18172,6 @@ void Player::_LoadInventory(PreparedQueryResult result, uint32 timeDiff)
 
                 }
 
-
                 // Item's state may have changed after storing
                 if (err == EQUIP_ERR_OK)
                 {
@@ -18116,7 +18208,12 @@ void Player::_LoadInventory(PreparedQueryResult result, uint32 timeDiff)
         for (Item* childItem : childItems)
         {
             if (Item* parent = GetItemByGuid(childItem->GetGuidValue(ITEM_FIELD_CREATOR)))
+            {
                 parent->SetChildItem(childItem->GetGUID());
+                childItem->CopyArtifactDataFromParent(parent);
+                if (childItem->IsEquipped())
+                    SetVisibleItemSlot(childItem->GetSlot(), childItem);
+            }
             else
                 childItem->SetState(ITEM_REMOVED, this);
         }
@@ -18134,7 +18231,7 @@ void Player::_LoadVoidStorage(PreparedQueryResult result)
 
     do
     {
-        // SELECT itemId, itemEntry, slot, creatorGuid, randomProperty, suffixFactor, upgradeId, bonusListIDs FROM character_void_storage WHERE playerGuid = ?
+        // SELECT itemId, itemEntry, slot, creatorGuid, randomProperty, suffixFactor, upgradeId, fixedScalingLevel, artifactKnowledgeLevel, bonusListIDs FROM character_void_storage WHERE playerGuid = ?
         Field* fields = result->Fetch();
 
         uint64 itemId = fields[0].GetUInt64();
@@ -18144,8 +18241,10 @@ void Player::_LoadVoidStorage(PreparedQueryResult result)
         uint32 randomProperty = fields[4].GetUInt32();
         uint32 suffixFactor = fields[5].GetUInt32();
         uint32 upgradeId = fields[6].GetUInt32();
+        uint32 fixedScalingLevel = fields[7].GetUInt32();
+        uint32 artifactKnowledgeLevel = fields[8].GetUInt32();
         std::vector<uint32> bonusListIDs;
-        Tokenizer bonusListIdTokens(fields[7].GetString(), ' ');
+        Tokenizer bonusListIdTokens(fields[9].GetString(), ' ');
         for (char const* token : bonusListIdTokens)
             bonusListIDs.push_back(atoul(token));
 
@@ -18170,7 +18269,7 @@ void Player::_LoadVoidStorage(PreparedQueryResult result)
             continue;
         }
 
-        _voidStorageItems[slot] = new VoidStorageItem(itemId, itemEntry, creatorGuid, randomProperty, suffixFactor, upgradeId, bonusListIDs);
+        _voidStorageItems[slot] = new VoidStorageItem(itemId, itemEntry, creatorGuid, randomProperty, suffixFactor, upgradeId, fixedScalingLevel, artifactKnowledgeLevel, bonusListIDs);
 
         WorldPackets::Item::ItemInstance voidInstance;
         voidInstance.Initialize(_voidStorageItems[slot]);
@@ -18346,7 +18445,7 @@ void Player::_LoadMailedItems(Mail* mail)
 
         Item* item = NewItemOrBag(proto);
 
-        ObjectGuid ownerGuid = fields[38].GetUInt64() ? ObjectGuid::Create<HighGuid::Player>(fields[38].GetUInt64()) : ObjectGuid::Empty;
+        ObjectGuid ownerGuid = fields[40].GetUInt64() ? ObjectGuid::Create<HighGuid::Player>(fields[40].GetUInt64()) : ObjectGuid::Empty;
         if (!item->LoadFromDB(itemGuid, ownerGuid, fields, itemEntry))
         {
             TC_LOG_ERROR("entities.player", "Player::_LoadMailedItems: Item (GUID: " UI64FMTD ") in mail (%u) doesn't exist, deleted from mail.", itemGuid, mail->messageID);
@@ -19567,6 +19666,7 @@ void Player::SaveToDB(bool create /*=false*/)
     _SaveWeeklyQuestStatus(trans);
     _SaveSeasonalQuestStatus(trans);
     _SaveMonthlyQuestStatus(trans);
+    _SaveGlyphs(trans);
     _SaveTalents(trans);
     _SaveSpells(trans);
     GetSpellHistory()->SaveToDB<Player>(trans);
@@ -19875,7 +19975,7 @@ void Player::_SaveVoidStorage(SQLTransaction& trans)
         }
         else
         {
-            // REPLACE INTO character_inventory (itemId, playerGuid, itemEntry, slot, creatorGuid, randomProperty, suffixFactor, upgradeId, bonusListIDs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            // REPLACE INTO character_void_storage (itemId, playerGuid, itemEntry, slot, creatorGuid, randomProperty, suffixFactor, upgradeId, fixedScalingLevel, artifactKnowledgeLevel, bonusListIDs) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_REP_CHAR_VOID_STORAGE_ITEM);
             stmt->setUInt64(0, _voidStorageItems[i]->ItemId);
             stmt->setUInt64(1, GetGUID().GetCounter());
@@ -19885,10 +19985,12 @@ void Player::_SaveVoidStorage(SQLTransaction& trans)
             stmt->setUInt32(5, _voidStorageItems[i]->ItemRandomPropertyId);
             stmt->setUInt32(6, _voidStorageItems[i]->ItemSuffixFactor);
             stmt->setUInt32(7, _voidStorageItems[i]->ItemUpgradeId);
+            stmt->setUInt32(8, _voidStorageItems[i]->FixedScalingLevel);
+            stmt->setUInt32(9, _voidStorageItems[i]->ArtifactKnowledgeLevel);
             std::ostringstream bonusListIDs;
             for (int32 bonusListID : _voidStorageItems[i]->BonusListIDs)
                 bonusListIDs << bonusListID << ' ';
-            stmt->setString(8, bonusListIDs.str());
+            stmt->setString(10, bonusListIDs.str());
         }
 
         trans->Append(stmt);
@@ -22986,6 +23088,17 @@ void Player::SendInitialPacketsBeforeAddToMap()
     GetSpellHistory()->WritePacket(&sendSpellCharges);
     SendDirectMessage(sendSpellCharges.Write());
 
+    WorldPackets::Talent::ActiveGlyphs activeGlyphs;
+    activeGlyphs.Glyphs.reserve(GetGlyphs(GetActiveTalentGroup()).size());
+    for (uint32 glyphId : GetGlyphs(GetActiveTalentGroup()))
+        if (std::vector<uint32> const* bindableSpells = sDB2Manager.GetGlyphBindableSpells(glyphId))
+            for (uint32 bindableSpell : *bindableSpells)
+                if (HasSpell(bindableSpell) && m_overrideSpells.find(bindableSpell) == m_overrideSpells.end())
+                    activeGlyphs.Glyphs.emplace_back(uint32(bindableSpell), uint16(glyphId));
+
+    activeGlyphs.IsFullUpdate = true;
+    SendDirectMessage(activeGlyphs.Write());
+
     /// SMSG_ACTION_BUTTONS
     SendInitialActionButtons();
 
@@ -23160,7 +23273,7 @@ void Player::ApplyEquipCooldown(Item* pItem)
     {
         ItemEffectEntry const* effectData = proto->Effects[i];
 
-        // wrong triggering type (note: ITEM_SPELLTRIGGER_ON_NO_DELAY_USE not have cooldown)
+        // wrong triggering type
         if (effectData->Trigger != ITEM_SPELLTRIGGER_ON_USE)
             continue;
 
@@ -23915,8 +24028,10 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
         return;
 
      // unequip offhand weapon if player doesn't have dual wield anymore
-    if (!CanDualWield() && (offItem->GetTemplate()->GetInventoryType() == INVTYPE_WEAPONOFFHAND || offItem->GetTemplate()->GetInventoryType() == INVTYPE_WEAPON))
-          force = true;
+    if (!CanDualWield()
+        && ((offItem->GetTemplate()->GetInventoryType() == INVTYPE_WEAPONOFFHAND && !(offItem->GetTemplate()->GetFlags3() & ITEM_FLAG3_DUAL_WIELD_NOT_REQUIRED))
+            || offItem->GetTemplate()->GetInventoryType() == INVTYPE_WEAPON))
+        force = true;
 
     // need unequip offhand for 2h-weapon without TitanGrip (in any from hands)
     if (!force && (CanTitanGrip() || (offItem->GetTemplate()->GetInventoryType() != INVTYPE_2HWEAPON && !IsTwoHandUsed())))
@@ -25788,6 +25903,51 @@ void Player::SetMap(Map* map)
     m_mapRef.link(map, this);
 }
 
+void Player::_LoadGlyphs(PreparedQueryResult result)
+{
+    // SELECT talentGroup, glyphId from character_glyphs WHERE guid = ?
+    if (!result)
+        return;
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint8 spec = fields[0].GetUInt8();
+        if (spec >= MAX_SPECIALIZATIONS || !sDB2Manager.GetChrSpecializationByIndex(getClass(), spec))
+            continue;
+
+        uint16 glyphId = fields[1].GetUInt16();
+        if (!sGlyphPropertiesStore.LookupEntry(glyphId))
+            continue;
+
+        GetGlyphs(spec).push_back(glyphId);
+
+    } while (result->NextRow());
+}
+
+void Player::_SaveGlyphs(SQLTransaction& trans) const
+{
+    PreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_GLYPHS);
+    stmt->setUInt64(0, GetGUID().GetCounter());
+    trans->Append(stmt);
+
+    for (uint8 spec = 0; spec < MAX_SPECIALIZATIONS; ++spec)
+    {
+        for (uint32 glyphId : GetGlyphs(spec))
+        {
+            uint8 index = 0;
+
+            stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHAR_GLYPHS);
+            stmt->setUInt64(index++, GetGUID().GetCounter());
+            stmt->setUInt8(index++, spec);
+            stmt->setUInt16(index++, uint16(glyphId));
+
+            trans->Append(stmt);
+        }
+    }
+}
+
 void Player::_LoadTalents(PreparedQueryResult result)
 {
     // SetPQuery(PLAYER_LOGIN_QUERY_LOADTALENTS, "SELECT spell, spec FROM character_talent WHERE guid = '%u'", GUID_LOPART(m_guid));
@@ -25891,6 +26051,9 @@ void Player::ActivateTalentGroup(ChrSpecializationEntry const* spec)
     // Remove spec specific spells
     RemoveSpecializationSpells();
 
+    for (uint32 glyphId : GetGlyphs(GetActiveTalentGroup()))
+        RemoveAurasDueToSpell(sGlyphPropertiesStore.AssertEntry(glyphId)->SpellID);
+
     SetActiveTalentGroup(spec->OrderIndex);
     SetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID, spec->ID);
     if (!GetPrimarySpecialization())
@@ -25947,6 +26110,20 @@ void Player::ActivateTalentGroup(ChrSpecializationEntry const* spec)
     for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
         if (Item* equippedItem = GetItemByPos(INVENTORY_SLOT_BAG_0, i))
             SetVisibleItemSlot(i, equippedItem);
+
+    for (uint32 glyphId : GetGlyphs(spec->OrderIndex))
+        CastSpell(this, sGlyphPropertiesStore.AssertEntry(glyphId)->SpellID, true);
+
+    WorldPackets::Talent::ActiveGlyphs activeGlyphs;
+    activeGlyphs.Glyphs.reserve(GetGlyphs(spec->OrderIndex).size());
+    for (uint32 glyphId : GetGlyphs(spec->OrderIndex))
+        if (std::vector<uint32> const* bindableSpells = sDB2Manager.GetGlyphBindableSpells(glyphId))
+            for (uint32 bindableSpell : *bindableSpells)
+                if (HasSpell(bindableSpell) && m_overrideSpells.find(bindableSpell) == m_overrideSpells.end())
+                    activeGlyphs.Glyphs.emplace_back(uint32(bindableSpell), uint16(glyphId));
+
+    activeGlyphs.IsFullUpdate = true;
+    SendDirectMessage(activeGlyphs.Write());
 }
 
 void Player::ResetTimeSync()
