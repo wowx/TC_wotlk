@@ -109,7 +109,7 @@ enum ItemSpelltriggerType
      * other hand the item is destroyed if the aura is removed ("removed on
      * death" of spell 57348 makes me think so)
      */
-    ITEM_SPELLTRIGGER_ON_NO_DELAY_USE = 5,                  // no equip cooldown
+    ITEM_SPELLTRIGGER_ON_OBTAIN       = 5,
     ITEM_SPELLTRIGGER_LEARN_SPELL_ID  = 6                   // used in item_template.spell_2 with spell_id with SPELL_GENERIC_LEARN in spell_1
 };
 
@@ -759,8 +759,6 @@ struct TC_GAME_API ItemTemplate
     HolidayIds GetHolidayID() const { return HolidayIds(ExtendedData->HolidayID); }
     float  GetStatScalingFactor() const { return ExtendedData->StatScalingFactor; }
     uint8 GetArtifactID() const { return ExtendedData->ArtifactID; }
-    uint32 GetBaseArmor() const { return GetArmor(ExtendedData->ItemLevel); }
-    void GetBaseDamage(float& minDamage, float& maxDamage) const { GetDamage(ExtendedData->ItemLevel, minDamage, maxDamage); }
 
     uint32 MaxDurability;
     std::vector<ItemEffectEntry const*> Effects;
