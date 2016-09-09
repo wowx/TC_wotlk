@@ -208,6 +208,7 @@ DB2Storage<SpellTargetRestrictionsEntry>        sSpellTargetRestrictionsStore("S
 DB2Storage<SpellTotemsEntry>                    sSpellTotemsStore("SpellTotems.db2", SpellTotemsMeta::Instance(), HOTFIX_SEL_SPELL_TOTEMS);
 DB2Storage<SpellXSpellVisualEntry>              sSpellXSpellVisualStore("SpellXSpellVisual.db2", SpellXSpellVisualMeta::Instance(), HOTFIX_SEL_SPELL_X_SPELL_VISUAL);
 DB2Storage<SummonPropertiesEntry>               sSummonPropertiesStore("SummonProperties.db2", SummonPropertiesMeta::Instance(), HOTFIX_SEL_SUMMON_PROPERTIES);
+DB2Storage<TactKeyEntry>                        sTactKeyStore("TactKey.db2", TactKeyMeta::Instance(), HOTFIX_SEL_TACT_KEY);
 DB2Storage<TalentEntry>                         sTalentStore("Talent.db2", TalentMeta::Instance(), HOTFIX_SEL_TALENT);
 DB2Storage<TaxiNodesEntry>                      sTaxiNodesStore("TaxiNodes.db2", TaxiNodesMeta::Instance(), HOTFIX_SEL_TAXI_NODES);
 DB2Storage<TaxiPathEntry>                       sTaxiPathStore("TaxiPath.db2", TaxiPathMeta::Instance(), HOTFIX_SEL_TAXI_PATH);
@@ -481,6 +482,7 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
     LOAD_DB2(sSpellTotemsStore);
     LOAD_DB2(sSpellXSpellVisualStore);
     LOAD_DB2(sSummonPropertiesStore);
+    LOAD_DB2(sTactKeyStore);
     LOAD_DB2(sTalentStore);
     LOAD_DB2(sTaxiNodesStore);
     LOAD_DB2(sTaxiPathStore);
@@ -514,6 +516,9 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
 
     for (ArtifactPowerRankEntry const* artifactPowerRank : sArtifactPowerRankStore)
         _artifactPowerRanks[std::pair<uint32, uint8>{ artifactPowerRank->ArtifactPowerID, artifactPowerRank->Rank }] = artifactPowerRank;
+
+    ASSERT(BATTLE_PET_SPECIES_MAX_ID >= sBattlePetSpeciesStore.GetNumRows(),
+        "BATTLE_PET_SPECIES_MAX_ID (%d) must be equal to or greater than %u", BATTLE_PET_SPECIES_MAX_ID, sBattlePetSpeciesStore.GetNumRows());
 
     std::unordered_map<uint32, std::set<std::pair<uint8, uint8>>> addedSections;
     for (CharSectionsEntry const* charSection : sCharSectionsStore)
@@ -598,6 +603,8 @@ void DB2Manager::LoadStores(std::string const& dataPath, uint32 defaultLocale)
         }
 
         _chrSpecializationsByIndex[storageIndex][chrSpec->OrderIndex] = chrSpec;
+        if (chrSpec->Flags & CHR_SPECIALIZATION_FLAG_RECOMMENDED)
+            _defaultChrSpecializationsByClass[chrSpec->ClassID] = chrSpec;
     }
 
     for (CurvePointEntry const* curvePoint : sCurvePointStore)
@@ -1054,6 +1061,15 @@ char const* DB2Manager::GetChrRaceName(uint8 race, LocaleConstant locale /*= DEF
 ChrSpecializationEntry const* DB2Manager::GetChrSpecializationByIndex(uint32 class_, uint32 index) const
 {
     return _chrSpecializationsByIndex[class_][index];
+}
+
+ChrSpecializationEntry const* DB2Manager::GetDefaultChrSpecializationForClass(uint32 class_) const
+{
+    auto itr = _defaultChrSpecializationsByClass.find(class_);
+    if (itr != _defaultChrSpecializationsByClass.end())
+        return itr->second;
+
+    return nullptr;
 }
 
 char const* DB2Manager::GetCreatureFamilyPetName(uint32 petfamily, uint32 locale)
