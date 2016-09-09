@@ -329,7 +329,7 @@ void WorldSession::HandleDestroyItemOpcode(WorldPackets::Item::DestroyItem& dest
         return;
     }
 
-    if (item->GetTemplate()->GetFlags() & ITEM_FLAG_INDESTRUCTIBLE)
+    if (item->GetTemplate()->GetFlags() & ITEM_FLAG_NO_USER_DESTROY)
     {
         _player->SendEquipError(EQUIP_ERR_DROP_BOUND_ITEM, NULL, NULL);
         return;
@@ -575,8 +575,6 @@ void WorldSession::HandleListInventoryOpcode(WorldPackets::NPC::Hello& packet)
 
 void WorldSession::SendListInventory(ObjectGuid vendorGuid, uint32 vendorEntry)
 {
-    TC_LOG_DEBUG("network", "WORLD: Sent SMSG_LIST_INVENTORY");
-
     Creature* vendor = GetPlayer()->GetNPCIfCanInteractWith(vendorGuid, UNIT_NPC_FLAG_VENDOR);
     if (!vendor)
     {
@@ -627,8 +625,8 @@ void WorldSession::SendListInventory(ObjectGuid vendorGuid, uint32 vendorEntry)
                     continue;
 
                 // Only display items in vendor lists for the team the player is on
-                if ((itemTemplate->GetFlags2() & ITEM_FLAG2_HORDE_ONLY && _player->GetTeam() == ALLIANCE) ||
-                    (itemTemplate->GetFlags2() & ITEM_FLAG2_ALLIANCE_ONLY && _player->GetTeam() == HORDE))
+                if ((itemTemplate->GetFlags2() & ITEM_FLAG2_FACTION_HORDE && _player->GetTeam() == ALLIANCE) ||
+                    (itemTemplate->GetFlags2() & ITEM_FLAG2_FACTION_ALLIANCE && _player->GetTeam() == HORDE))
                     continue;
 
                 // Items sold out are not displayed in list
@@ -784,7 +782,7 @@ void WorldSession::HandleWrapItem(WorldPackets::Item::WrapItem& packet)
         return;
     }
 
-    if (!(gift->GetTemplate()->GetFlags() & ITEM_FLAG_WRAPPER)) // cheating: non-wrapper wrapper
+    if (!(gift->GetTemplate()->GetFlags() & ITEM_FLAG_IS_WRAPPER)) // cheating: non-wrapper wrapper
     {
         _player->SendEquipError(EQUIP_ERR_ITEM_NOT_FOUND, gift, NULL);
         return;
@@ -974,7 +972,7 @@ void WorldSession::HandleSocketGems(WorldPackets::Item::SocketGems& socketGems)
         ItemTemplate const* iGemProto = gems[i]->GetTemplate();
 
         // unique item (for new and already placed bit removed enchantments
-        if (iGemProto->GetFlags() & ITEM_FLAG_UNIQUE_EQUIPPED)
+        if (iGemProto->GetFlags() & ITEM_FLAG_UNIQUE_EQUIPPABLE)
         {
             for (uint32 j = 0; j < MAX_GEM_SOCKETS; ++j)
             {

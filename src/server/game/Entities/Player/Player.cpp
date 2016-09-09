@@ -665,7 +665,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     }
     // all item positions resolved
 
-    if (ChrSpecializationEntry const* defaultSpec = sChrSpecializationStore.LookupEntry(cEntry->DefaultSpec))
+    if (ChrSpecializationEntry const* defaultSpec = sDB2Manager.GetDefaultChrSpecializationForClass(getClass()))
     {
         SetActiveTalentGroup(defaultSpec->OrderIndex);
         SetPrimarySpecialization(defaultSpec->ID);
@@ -7712,6 +7712,10 @@ void Player::ApplyArtifactPowers(Item* item, bool apply)
 
         ApplyArtifactPowerRank(item, artifactPowerRank, apply);
     }
+
+    if (ArtifactAppearanceEntry const* artifactAppearance = sArtifactAppearanceStore.LookupEntry(item->GetModifier(ITEM_MODIFIER_ARTIFACT_APPEARANCE_ID)))
+        if (artifactAppearance->ShapeshiftDisplayID && GetShapeshiftForm() == ShapeshiftForm(artifactAppearance->ModifiesShapeshiftFormDisplay))
+            RestoreDisplayId();
 }
 
 void Player::ApplyArtifactPowerRank(Item* artifact, ArtifactPowerRankEntry const* artifactPowerRank, bool apply)
@@ -8205,6 +8209,9 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type)
                 if (groupRules && !go->loot.empty())
                     group->UpdateLooterGuid(go);
             }
+
+            if (GameObjectTemplateAddon const* addon = go->GetTemplateAddon())
+                loot->generateMoneyLoot(addon->mingold, addon->maxgold);
 
             if (loot_type == LOOT_FISHING)
                 go->getFishLoot(loot, this);
@@ -11021,7 +11028,7 @@ InventoryResult Player::CanEquipItem(uint8 slot, uint16 &dest, Item* pItem, bool
                 }
                 else if (type == INVTYPE_WEAPONOFFHAND)
                 {
-                    if (!CanDualWield() && !(pProto->GetFlags3() & ITEM_FLAG3_DUAL_WIELD_NOT_REQUIRED))
+                    if (!CanDualWield() && !(pProto->GetFlags3() & ITEM_FLAG3_ALWAYS_ALLOW_DUAL_WIELD))
                         return EQUIP_ERR_2HSKILLNOTFOUND;
                 }
                 else if (type == INVTYPE_2HWEAPON)
@@ -11396,13 +11403,13 @@ InventoryResult Player::CanUseItem(ItemTemplate const* proto) const
     if (!proto)
         return EQUIP_ERR_ITEM_NOT_FOUND;
 
-    if (proto->GetFlags2() & ITEM_FLAG2_UNAVAILABLE_FOR_PLAYERS)
+    if (proto->GetFlags2() & ITEM_FLAG2_INTERNAL_ITEM)
         return EQUIP_ERR_CANT_EQUIP_EVER;
 
-    if ((proto->GetFlags2() & ITEM_FLAG2_HORDE_ONLY) && GetTeam() != HORDE)
+    if ((proto->GetFlags2() & ITEM_FLAG2_FACTION_HORDE) && GetTeam() != HORDE)
         return EQUIP_ERR_CANT_EQUIP_EVER;
 
-    if ((proto->GetFlags2() & ITEM_FLAG2_ALLIANCE_ONLY) && GetTeam() != ALLIANCE)
+    if ((proto->GetFlags2() & ITEM_FLAG2_FACTION_ALLIANCE) && GetTeam() != ALLIANCE)
         return EQUIP_ERR_CANT_EQUIP_EVER;
 
     if ((proto->GetAllowableClass() & getClassMask()) == 0 || (proto->GetAllowableRace() & getRaceMask()) == 0)
@@ -12214,7 +12221,7 @@ void Player::DestroyItem(uint8 bag, uint8 slot, bool update)
         // Delete rolled money / loot from db.
         // MUST be done before RemoveFromWorld() or GetTemplate() fails
         if (ItemTemplate const* pTmp = pItem->GetTemplate())
-            if (pTmp->GetFlags() & ITEM_FLAG_OPENABLE)
+            if (pTmp->GetFlags() & ITEM_FLAG_HAS_LOOT)
                 pItem->ItemContainerDeleteLootMoneyAndLootItemsFromDB();
 
         if (IsInWorld() && update)
@@ -13322,7 +13329,7 @@ void Player::UpdateItemDuration(uint32 time, bool realtimeonly)
         Item* item = *itr;
         ++itr;                                              // current element can be erased in UpdateDuration
 
-        if (!realtimeonly || item->GetTemplate()->FlagsCu & ITEM_FLAGS_CU_DURATION_REAL_TIME)
+        if (!realtimeonly || item->GetTemplate()->GetFlags() & ITEM_FLAG_REAL_DURATION)
             item->UpdateDuration(this, time);
     }
 }
@@ -21849,7 +21856,7 @@ inline bool Player::_StoreOrEquipNewItem(uint32 vendorslot, uint32 item, uint8 c
         if (!bStore)
             AutoUnequipOffhandIfNeed();
 
-        if (pProto->GetFlags() & ITEM_FLAG_REFUNDABLE && crItem->ExtendedCost && pProto->GetMaxStackSize() == 1)
+        if (pProto->GetFlags() & ITEM_FLAG_ITEM_PURCHASE_RECORD && crItem->ExtendedCost && pProto->GetMaxStackSize() == 1)
         {
             it->SetFlag(ITEM_FIELD_FLAGS, ITEM_FIELD_FLAG_REFUNDABLE);
             it->SetRefundRecipient(GetGUID());
@@ -22044,7 +22051,7 @@ bool Player::BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uin
         return false;
     }
 
-    if (!IsGameMaster() && ((pProto->GetFlags2() & ITEM_FLAG2_HORDE_ONLY && GetTeam() == ALLIANCE) || (pProto->GetFlags2() == ITEM_FLAG2_ALLIANCE_ONLY && GetTeam() == HORDE)))
+    if (!IsGameMaster() && ((pProto->GetFlags2() & ITEM_FLAG2_FACTION_HORDE && GetTeam() == ALLIANCE) || (pProto->GetFlags2() & ITEM_FLAG2_FACTION_ALLIANCE && GetTeam() == HORDE)))
         return false;
 
     Creature* creature = GetNPCIfCanInteractWith(vendorguid, UNIT_NPC_FLAG_VENDOR);
@@ -24033,7 +24040,7 @@ void Player::AutoUnequipOffhandIfNeed(bool force /*= false*/)
 
      // unequip offhand weapon if player doesn't have dual wield anymore
     if (!CanDualWield()
-        && ((offItem->GetTemplate()->GetInventoryType() == INVTYPE_WEAPONOFFHAND && !(offItem->GetTemplate()->GetFlags3() & ITEM_FLAG3_DUAL_WIELD_NOT_REQUIRED))
+        && ((offItem->GetTemplate()->GetInventoryType() == INVTYPE_WEAPONOFFHAND && !(offItem->GetTemplate()->GetFlags3() & ITEM_FLAG3_ALWAYS_ALLOW_DUAL_WIELD))
             || offItem->GetTemplate()->GetInventoryType() == INVTYPE_WEAPON))
         force = true;
 
@@ -25323,7 +25330,7 @@ InventoryResult Player::CanEquipUniqueItem(Item* pItem, uint8 eslot, uint32 limi
 InventoryResult Player::CanEquipUniqueItem(ItemTemplate const* itemProto, uint8 except_slot, uint32 limit_count) const
 {
     // check unique-equipped on item
-    if (itemProto->GetFlags() & ITEM_FLAG_UNIQUE_EQUIPPED)
+    if (itemProto->GetFlags() & ITEM_FLAG_UNIQUE_EQUIPPABLE)
     {
         // there is an equip limit on this item
         if (HasItemOrGemWithIdEquipped(itemProto->GetId(), 1, except_slot))
@@ -25569,7 +25576,7 @@ void Player::ResetTalentSpecialization()
 
     RemoveSpecializationSpells();
 
-    ChrSpecializationEntry const* defaultSpec = sChrSpecializationStore.LookupEntry(sChrClassesStore.AssertEntry(getClass())->DefaultSpec);
+    ChrSpecializationEntry const* defaultSpec = ASSERT_NOTNULL(sDB2Manager.GetDefaultChrSpecializationForClass(getClass()));
     SetPrimarySpecialization(defaultSpec->ID);
     SetActiveTalentGroup(defaultSpec->OrderIndex);
     SetUInt32Value(PLAYER_FIELD_CURRENT_SPEC_ID, defaultSpec->ID);
@@ -27156,10 +27163,7 @@ bool Player::ValidateAppearance(uint8 race, uint8 class_, uint8 gender, uint8 ha
 
 uint32 Player::GetDefaultSpecId() const
 {
-    ChrClassesEntry const* entry = sChrClassesStore.LookupEntry(getClass());
-    if (entry)
-        return entry->DefaultSpec;
-    return 0;
+    return ASSERT_NOTNULL(sDB2Manager.GetDefaultChrSpecializationForClass(getClass()))->ID;
 }
 
 void Player::SendSpellCategoryCooldowns() const
