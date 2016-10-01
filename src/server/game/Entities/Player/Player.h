@@ -32,6 +32,7 @@
 #include "WorldSession.h"
 #include "PlayerTaxi.h"
 #include "TradeData.h"
+#include "SceneMgr.h"
 
 struct CreatureTemplate;
 struct Mail;
@@ -2476,6 +2477,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool IsAdvancedCombatLoggingEnabled() const { return _advancedCombatLoggingEnabled; }
         void SetAdvancedCombatLogging(bool enabled) { _advancedCombatLoggingEnabled = enabled; }
 
+        SceneMgr& GetSceneMgr() { return m_sceneMgr; }
+
     protected:
         // Gamemaster whisper whitelist
         GuidList WhisperList;
@@ -2627,9 +2630,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
          * @param  CurrencyTypesEntry for which to retrieve total cap
          */
         uint32 GetCurrencyTotalCap(CurrencyTypesEntry const* currency) const;
-
-        /// Updates weekly conquest point cap (dynamic cap)
-        void UpdateConquestCurrencyCap(uint32 currency) const;
 
         VoidStorageItem* _voidStorageItems[VOID_STORAGE_MAX_SLOT];
 
@@ -2813,7 +2813,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 _pendingBindTimer;
 
         uint32 _activeCheats;
-        uint32 _maxPersonalArenaRate;
 
         std::unique_ptr<Garrison> _garrison;
 
@@ -2824,6 +2823,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 manaBeforeDuel;
 
         WorldLocation _corpseLocation;
+
+        SceneMgr m_sceneMgr;
 };
 
 TC_GAME_API void AddItemsSetItem(Player* player, Item* item);
