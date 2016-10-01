@@ -881,14 +881,19 @@ enum VehicleSeatFlagsB
 // CurrencyTypes.dbc
 enum CurrencyTypes
 {
-    CURRENCY_TYPE_CONQUEST_POINTS       = 390,
-    CURRENCY_TYPE_HONOR_POINTS          = 392,
     CURRENCY_TYPE_JUSTICE_POINTS        = 395,
     CURRENCY_TYPE_VALOR_POINTS          = 396,
-    CURRENCY_TYPE_CONQUEST_META_ARENA   = 483,
-    CURRENCY_TYPE_CONQUEST_META_RBG     = 484,
     CURRENCY_TYPE_APEXIS_CRYSTALS       = 823,
     CURRENCY_TYPE_ARTIFACT_KNOWLEDGE    = 1171,
+};
+
+enum SceneFlags
+{
+    SCENEFLAG_UNK1              = 0x01,
+    SCENEFLAG_UNK2              = 0x02,
+    SCENEFLAG_NOT_CANCELABLE    = 0x04,
+    SCENEFLAG_UNK8              = 0x08,
+    SCENEFLAG_UNK16             = 0x10, // 16, most common value
 };
 
 #endif
