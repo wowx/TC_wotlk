@@ -28,16 +28,17 @@ Using diff:
 - use cmake and compile
 
 After compiling:
-- Navigate to `\src\server\scripts\Custom\objscale\sql\`
-- Run `world.sql` to your world database
-- Run `auth.sql` to your auth database
+- TrinityCore auto updater should run needed SQLs automatically.
+- If you do not use the auto updater then run files named `*_objscale.sql` from `\sql\custom` to your databases.
 
 ####Usage
 You can set the sizes in the `creature` and `gameobject` database tables in the world database by changing the `size` column.
 In game you can change a spawned object's size by using `.gobject set scale #guid #scale` and spawned NPC sizes by selecting an NPC and using `.npc set scale #scale`
 Using -1 has scale makes the gameobject and npc use the default scale from template.
 
-Known issue: You can not resize some gameobject types. This is likely a client limitation.
+Known issues:
+- You can not resize some gameobject types. This is likely a client limitation.
+- You may need to relog to see the size changes for some wow patches or versions of the core.
 
 ####Bugs and Contact
 Report issues and similar to https://rochet2.github.io/
