@@ -98,14 +98,11 @@ void SendReforgePacket(Player* player, uint32 entry, uint32 lowguid, const Refor
     // HandleItemQuerySingleOpcode copy paste
     std::string Name = pProto->Name1;
     std::string Description = pProto->Description;
-    int loc_idx = player->GetSession()->GetSessionDbLocaleIndex();
-    if (loc_idx >= 0)
+    LocaleConstant loc_idx = player->GetSession()->GetSessionDbLocaleIndex();
+    if (ItemLocale const* il = sObjectMgr->GetItemLocale(pProto->ItemId))
     {
-        if (ItemLocale const* il = sObjectMgr->GetItemLocale(pProto->ItemId))
-        {
-            ObjectMgr::GetLocaleString(il->Name, loc_idx, Name);
-            ObjectMgr::GetLocaleString(il->Description, loc_idx, Description);
-        }
+        ObjectMgr::GetLocaleString(il->Name, loc_idx, Name);
+        ObjectMgr::GetLocaleString(il->Description, loc_idx, Description);
     }
     WorldPacket data(SMSG_ITEM_QUERY_SINGLE_RESPONSE, 600);
     data << pProto->ItemId;
