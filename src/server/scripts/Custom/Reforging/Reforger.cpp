@@ -11,6 +11,7 @@
 #include "ObjectGuid.h"
 #include "ObjectMgr.h"
 #include "Player.h"
+#include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
@@ -44,16 +45,16 @@ static const uint8 stat_type_max = sizeof(statTypes) / sizeof(*statTypes);
 
 static const char* GetStatName(uint32 ItemStatType)
 {
-    switch(ItemStatType)
+    switch (ItemStatType)
     {
-    case ITEM_MOD_SPIRIT                   	: return "Spirit"; break;
-    case ITEM_MOD_DODGE_RATING             	: return "Dodge rating"; break;
-    case ITEM_MOD_PARRY_RATING             	: return "Parry rating"; break;
-    case ITEM_MOD_HIT_RATING               	: return "Hit rating"; break;
-    case ITEM_MOD_CRIT_RATING              	: return "Crit rating"; break;
-    case ITEM_MOD_HASTE_RATING             	: return "Haste rating"; break;
-    case ITEM_MOD_EXPERTISE_RATING         	: return "Expertise rating"; break;
-    default: return NULL;
+        case ITEM_MOD_SPIRIT: return "Spirit"; break;
+        case ITEM_MOD_DODGE_RATING: return "Dodge rating"; break;
+        case ITEM_MOD_PARRY_RATING: return "Parry rating"; break;
+        case ITEM_MOD_HIT_RATING: return "Hit rating"; break;
+        case ITEM_MOD_CRIT_RATING: return "Crit rating"; break;
+        case ITEM_MOD_HASTE_RATING: return "Haste rating"; break;
+        case ITEM_MOD_EXPERTISE_RATING: return "Expertise rating"; break;
+        default: return NULL;
     }
 }
 
@@ -61,26 +62,26 @@ static const char* GetSlotName(uint8 slot, WorldSession* /*session*/)
 {
     switch (slot)
     {
-    case EQUIPMENT_SLOT_HEAD      : return "Head";
-    case EQUIPMENT_SLOT_NECK      : return "Neck";
-    case EQUIPMENT_SLOT_SHOULDERS : return "Shoulders";
-    case EQUIPMENT_SLOT_BODY      : return "Shirt";
-    case EQUIPMENT_SLOT_CHEST     : return "Chest";
-    case EQUIPMENT_SLOT_WAIST     : return "Waist";
-    case EQUIPMENT_SLOT_LEGS      : return "Legs";
-    case EQUIPMENT_SLOT_FEET      : return "Feet";
-    case EQUIPMENT_SLOT_WRISTS    : return "Wrists";
-    case EQUIPMENT_SLOT_HANDS     : return "Hands";
-    case EQUIPMENT_SLOT_FINGER1   : return "Right finger";
-    case EQUIPMENT_SLOT_FINGER2   : return "Left finger";
-    case EQUIPMENT_SLOT_TRINKET1  : return "Right trinket";
-    case EQUIPMENT_SLOT_TRINKET2  : return "Left trinket";
-    case EQUIPMENT_SLOT_BACK      : return "Back";
-    case EQUIPMENT_SLOT_MAINHAND  : return "Main hand";
-    case EQUIPMENT_SLOT_OFFHAND   : return "Off hand";
-    case EQUIPMENT_SLOT_TABARD    : return "Tabard";
-    case EQUIPMENT_SLOT_RANGED    : return "Ranged";
-    default: return NULL;
+        case EQUIPMENT_SLOT_HEAD: return "Head";
+        case EQUIPMENT_SLOT_NECK: return "Neck";
+        case EQUIPMENT_SLOT_SHOULDERS: return "Shoulders";
+        case EQUIPMENT_SLOT_BODY: return "Shirt";
+        case EQUIPMENT_SLOT_CHEST: return "Chest";
+        case EQUIPMENT_SLOT_WAIST: return "Waist";
+        case EQUIPMENT_SLOT_LEGS: return "Legs";
+        case EQUIPMENT_SLOT_FEET: return "Feet";
+        case EQUIPMENT_SLOT_WRISTS: return "Wrists";
+        case EQUIPMENT_SLOT_HANDS: return "Hands";
+        case EQUIPMENT_SLOT_FINGER1: return "Right finger";
+        case EQUIPMENT_SLOT_FINGER2: return "Left finger";
+        case EQUIPMENT_SLOT_TRINKET1: return "Right trinket";
+        case EQUIPMENT_SLOT_TRINKET2: return "Left trinket";
+        case EQUIPMENT_SLOT_BACK: return "Back";
+        case EQUIPMENT_SLOT_MAINHAND: return "Main hand";
+        case EQUIPMENT_SLOT_OFFHAND: return "Off hand";
+        case EQUIPMENT_SLOT_TABARD: return "Tabard";
+        case EQUIPMENT_SLOT_RANGED: return "Ranged";
+        default: return NULL;
     }
 }
 
@@ -153,7 +154,7 @@ static void UpdatePlayerReforgeStats(Item* invItem, Player* player, uint32 decre
     data.stat_value = stat_diff;
     player->_ApplyItemMods(invItem, invItem->GetSlot(), true);
     // CharacterDatabase.PExecute("REPLACE INTO `custom_reforging` (`GUID`, `increase`, `decrease`, `stat_value`) VALUES (%u, %u, %u, %i)", guidlow, increase, decrease, stat_diff);
-    player->ModifyMoney(pProto->SellPrice < (10*GOLD) ? (-10*GOLD) : -(int32)pProto->SellPrice);
+    player->ModifyMoney(pProto->SellPrice < (10 * GOLD) ? (-10 * GOLD) : -(int32)pProto->SellPrice);
     SendReforgePacket(player, invItem->GetEntry(), 0, &data);
     // player->SaveToDB();
 }
@@ -249,178 +250,191 @@ class REFORGER_NPC : public CreatureScript
 public:
     REFORGER_NPC() : CreatureScript("REFORGER_NPC") { }
 
-    bool OnGossipHello(Player* player, Creature* creature) override
+    class ReforgeAI : public ScriptedAI
     {
-        AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Select slot of the item to reforge:", 0, Melt(MAIN_MENU, 0));
-        for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
+    public:
+        ReforgeAI(Creature* me) : ScriptedAI(me)
         {
-            if (Item* invItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
-                if (IsReforgable(invItem, player))
-                    if (const char* slotname = GetSlotName(slot, player->GetSession()))
-                        AddGossipItemFor(player, GOSSIP_ICON_TRAINER, slotname, 0, Melt(SELECT_STAT_REDUCE, slot));
         }
-        AddGossipItemFor(player, GOSSIP_ICON_TRAINER, "Remove reforges", 0, Melt(SELECT_RESTORE, 0));
-        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Update menu", 0, Melt(MAIN_MENU, 0));
-        SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
-        return true;
-    }
 
-    bool OnGossipSelect(Player* player, Creature* creature, uint32 sender, uint32 melt) override
-    {
-        ClearGossipMenuFor(player);
-
-        uint8 menu, action;
-        Unmelt(melt, menu, action);
-
-        switch (menu)
+        bool GossipHello(Player* player) override
         {
-        case MAIN_MENU: OnGossipHello(player, creature); break;
-        case SELECT_STAT_REDUCE:
-            // action = slot
-            if (Item* invItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, action))
+            AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Select slot of the item to reforge:", 0, Melt(MAIN_MENU, 0));
+            for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
             {
-                if (IsReforgable(invItem, player))
-                {
-                    uint32 guidlow = invItem->GetGUID().GetCounter();
-                    const ItemTemplate* pProto = invItem->GetTemplate();
-                    AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Stat to decrease:", sender, melt);
-                    for (uint32 i = 0; i < pProto->StatsCount; ++i)
-                    {
-                        int32 stat_diff = ((int32)floorf((float)pProto->ItemStat[i].ItemStatValue * 0.4f));
-                        if (stat_diff > 1)
-                            if (const char* stat_name = GetStatName(pProto->ItemStat[i].ItemStatType))
-                            {
-                                std::ostringstream oss;
-                                oss << stat_name << " (" << pProto->ItemStat[i].ItemStatValue << " |cFFDB2222-" << stat_diff << "|r)";
-                                AddGossipItemFor(player, GOSSIP_ICON_TRAINER, oss.str(), guidlow, Melt(SELECT_STAT_INCREASE, i));
-                            }
-                    }
-                    AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(MAIN_MENU, 0));
-                    SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
-                }
-                else
-                {
-                    player->GetSession()->SendNotification("Invalid item selected");
-                    OnGossipHello(player, creature);
-                }
+                if (Item* invItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+                    if (IsReforgable(invItem, player))
+                        if (const char* slotname = GetSlotName(slot, player->GetSession()))
+                            AddGossipItemFor(player, GOSSIP_ICON_TRAINER, slotname, 0, Melt(SELECT_STAT_REDUCE, slot));
             }
-            else
-            {
-                player->GetSession()->SendNotification("Invalid item selected");
-                OnGossipHello(player, creature);
-            }
-            break;
-        case SELECT_STAT_INCREASE:
-            // sender = item guidlow
-            // action = StatsCount id
-            {
-                Item* invItem = GetEquippedItem(player, sender);
-                if (invItem)
-                {
-                    const ItemTemplate* pProto = invItem->GetTemplate();
-                    int32 stat_diff = ((int32)floorf((float)pProto->ItemStat[action].ItemStatValue * 0.4f));
+            AddGossipItemFor(player, GOSSIP_ICON_TRAINER, "Remove reforges", 0, Melt(SELECT_RESTORE, 0));
+            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Update menu", 0, Melt(MAIN_MENU, 0));
+            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+            return true;
+        }
 
-                    AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Stat to increase:", sender, melt);
-                    for (uint8 i = 0; i < stat_type_max; ++i)
+        bool GossipSelect(Player* player, uint32 sender, uint32 melt) override
+        {
+            ClearGossipMenuFor(player);
+
+            uint8 menu, action;
+            Unmelt(melt, menu, action);
+
+            switch (menu)
+            {
+                case MAIN_MENU: GossipHello(player); break;
+                case SELECT_STAT_REDUCE:
+                    // action = slot
+                    if (Item* invItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, action))
                     {
-                        bool cont = false;
-                        for (uint32 j = 0; j < pProto->StatsCount; ++j)
+                        if (IsReforgable(invItem, player))
                         {
-                            if (statTypes[i] == pProto->ItemStat[j].ItemStatType) // skip existing stats on item
+                            uint32 guidlow = invItem->GetGUID().GetCounter();
+                            const ItemTemplate* pProto = invItem->GetTemplate();
+                            AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Stat to decrease:", sender, melt);
+                            for (uint32 i = 0; i < pProto->StatsCount; ++i)
                             {
-                                cont = true;
-                                break;
+                                int32 stat_diff = ((int32)floorf((float)pProto->ItemStat[i].ItemStatValue * 0.4f));
+                                if (stat_diff > 1)
+                                    if (const char* stat_name = GetStatName(pProto->ItemStat[i].ItemStatType))
+                                    {
+                                        std::ostringstream oss;
+                                        oss << stat_name << " (" << pProto->ItemStat[i].ItemStatValue << " |cFFDB2222-" << stat_diff << "|r)";
+                                        AddGossipItemFor(player, GOSSIP_ICON_TRAINER, oss.str(), guidlow, Melt(SELECT_STAT_INCREASE, i));
+                                    }
                             }
-                        }
-                        if (cont)
-                            continue;
-                        if (const char* stat_name = GetStatName(statTypes[i]))
-                        {
-                            std::ostringstream oss;
-                            oss << stat_name << " |cFF3ECB3C+" << stat_diff << "|r";
-                            AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, oss.str(), sender, Melt(i, (uint8)pProto->ItemStat[action].ItemStatType), "Are you sure you want to reforge\n\n" + pProto->Name1, (pProto->SellPrice < (10 * GOLD) ? (10 * GOLD) : pProto->SellPrice), false);
-                        }
-                    }
-                    AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(SELECT_STAT_REDUCE, invItem->GetSlot()));
-                    SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
-                }
-                else
-                {
-                    player->GetSession()->SendNotification("Invalid item selected");
-                    OnGossipHello(player, creature);
-                }
-            }
-            break;
-        case SELECT_RESTORE:
-            {
-                AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Select slot to remove reforge from:", sender, melt);
-                if (!player->reforgeMap.empty())
-                {
-                    for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
-                    {
-                        if (Item* invItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
-                            if (player->reforgeMap.find(invItem->GetGUID().GetCounter()) != player->reforgeMap.end())
-                                if (const char* slotname = GetSlotName(slot, player->GetSession()))
-                                    AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, slotname, invItem->GetGUID().GetCounter(), Melt(RESTORE, 0), "Remove reforge from\n\n" + invItem->GetTemplate()->Name1, 0, false);
-                    }
-                }
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Update menu", sender, melt);
-                AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(MAIN_MENU, 0));
-                SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
-            }
-            break;
-        case RESTORE:
-            // sender = item guidlow
-            {
-                if (player->GetItemByGuid(ObjectGuid(HighGuid::Item, 0, sender)))
-                {
-                    if (!player->reforgeMap.empty() && player->reforgeMap.find(sender) != player->reforgeMap.end())
-                        RemoveReforge(player, sender, true);
-                }
-                OnGossipHello(player, creature);
-            }
-            break;
-        default: // Reforge
-            // sender = item guidlow
-            // menu = stat type to increase index to statTypes[]
-            // action = stat type to decrease
-            {
-                if (menu < stat_type_max)
-                {
-                    Item* invItem = GetEquippedItem(player, sender);
-                    if (invItem && IsReforgable(invItem, player))
-                    {
-                        if (player->HasEnoughMoney(invItem->GetTemplate()->SellPrice < (10 * GOLD) ? (10 * GOLD) : invItem->GetTemplate()->SellPrice))
-                        {
-                            // int32 stat_diff = ((int32)floorf((float)invItem->GetTemplate()->ItemStat[action].ItemStatValue * 0.4f));
-                            UpdatePlayerReforgeStats(invItem, player, action, statTypes[menu]); // rewrite this function
+                            AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(MAIN_MENU, 0));
+                            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
                         }
                         else
                         {
-                            player->GetSession()->SendNotification("Not enough money");
+                            player->GetSession()->SendNotification("Invalid item selected");
+                            GossipHello(player);
                         }
                     }
                     else
                     {
                         player->GetSession()->SendNotification("Invalid item selected");
+                        GossipHello(player);
                     }
-                }
-                OnGossipHello(player, creature);
-            }
-        }
-        return true;
-    }
+                    break;
+                case SELECT_STAT_INCREASE:
+                    // sender = item guidlow
+                    // action = StatsCount id
+                    {
+                        Item* invItem = GetEquippedItem(player, sender);
+                        if (invItem)
+                        {
+                            const ItemTemplate* pProto = invItem->GetTemplate();
+                            int32 stat_diff = ((int32)floorf((float)pProto->ItemStat[action].ItemStatValue * 0.4f));
 
-    enum Menus
-    {
-        MAIN_MENU = 200, // stat_type_max
-        SELECT_ITEM,
-        SELECT_STAT_REDUCE,
-        SELECT_STAT_INCREASE,
-        SELECT_RESTORE,
-        RESTORE,
-        REFORGE,
+                            AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Stat to increase:", sender, melt);
+                            for (uint8 i = 0; i < stat_type_max; ++i)
+                            {
+                                bool cont = false;
+                                for (uint32 j = 0; j < pProto->StatsCount; ++j)
+                                {
+                                    if (statTypes[i] == pProto->ItemStat[j].ItemStatType) // skip existing stats on item
+                                    {
+                                        cont = true;
+                                        break;
+                                    }
+                                }
+                                if (cont)
+                                    continue;
+                                if (const char* stat_name = GetStatName(statTypes[i]))
+                                {
+                                    std::ostringstream oss;
+                                    oss << stat_name << " |cFF3ECB3C+" << stat_diff << "|r";
+                                    AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, oss.str(), sender, Melt(i, (uint8)pProto->ItemStat[action].ItemStatType), "Are you sure you want to reforge\n\n" + pProto->Name1, (pProto->SellPrice < (10 * GOLD) ? (10 * GOLD) : pProto->SellPrice), false);
+                                }
+                            }
+                            AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(SELECT_STAT_REDUCE, invItem->GetSlot()));
+                            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+                        }
+                        else
+                        {
+                            player->GetSession()->SendNotification("Invalid item selected");
+                            GossipHello(player);
+                        }
+                    }
+                    break;
+                case SELECT_RESTORE:
+                    {
+                        AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Select slot to remove reforge from:", sender, melt);
+                        if (!player->reforgeMap.empty())
+                        {
+                            for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
+                            {
+                                if (Item* invItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, slot))
+                                    if (player->reforgeMap.find(invItem->GetGUID().GetCounter()) != player->reforgeMap.end())
+                                        if (const char* slotname = GetSlotName(slot, player->GetSession()))
+                                            AddGossipItemFor(player, GOSSIP_ICON_INTERACT_1, slotname, invItem->GetGUID().GetCounter(), Melt(RESTORE, 0), "Remove reforge from\n\n" + invItem->GetTemplate()->Name1, 0, false);
+                            }
+                        }
+                        AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Update menu", sender, melt);
+                        AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(MAIN_MENU, 0));
+                        SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+                    }
+                    break;
+                case RESTORE:
+                    // sender = item guidlow
+                    {
+                        if (player->GetItemByGuid(ObjectGuid(HighGuid::Item, 0, sender)))
+                        {
+                            if (!player->reforgeMap.empty() && player->reforgeMap.find(sender) != player->reforgeMap.end())
+                                RemoveReforge(player, sender, true);
+                        }
+                        GossipHello(player);
+                    }
+                    break;
+                default: // Reforge
+                    // sender = item guidlow
+                    // menu = stat type to increase index to statTypes[]
+                    // action = stat type to decrease
+                    {
+                        if (menu < stat_type_max)
+                        {
+                            Item* invItem = GetEquippedItem(player, sender);
+                            if (invItem && IsReforgable(invItem, player))
+                            {
+                                if (player->HasEnoughMoney(invItem->GetTemplate()->SellPrice < (10 * GOLD) ? (10 * GOLD) : invItem->GetTemplate()->SellPrice))
+                                {
+                                    // int32 stat_diff = ((int32)floorf((float)invItem->GetTemplate()->ItemStat[action].ItemStatValue * 0.4f));
+                                    UpdatePlayerReforgeStats(invItem, player, action, statTypes[menu]); // rewrite this function
+                                }
+                                else
+                                {
+                                    player->GetSession()->SendNotification("Not enough money");
+                                }
+                            }
+                            else
+                            {
+                                player->GetSession()->SendNotification("Invalid item selected");
+                            }
+                        }
+                        GossipHello(player);
+                    }
+            }
+            return true;
+        }
+
+        enum Menus
+        {
+            MAIN_MENU = 200, // stat_type_max
+            SELECT_ITEM,
+            SELECT_STAT_REDUCE,
+            SELECT_STAT_INCREASE,
+            SELECT_RESTORE,
+            RESTORE,
+            REFORGE,
+        };
     };
+
+    CreatureAI* GetAI(Creature* me) const override
+    {
+        return new ReforgeAI(me);
+    }
 };
 
 void AddSC_REFORGER_NPC()
