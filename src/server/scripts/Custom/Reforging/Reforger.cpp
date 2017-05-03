@@ -253,11 +253,44 @@ public:
     class ReforgeAI : public ScriptedAI
     {
     public:
-        ReforgeAI(Creature* me) : ScriptedAI(me)
+        ReforgeAI(Creature* creature) : ScriptedAI(creature)
         {
         }
 
+        struct Timed : public BasicEvent
+        {
+            // This timed event tries to fix modify money breaking gossip
+            // This event closes the gossip menu and on the second player update tries to open the next menu
+            Timed(Player* player, Creature* creature) : guid(creature->GetGUID()), player(player), triggered(false)
+            {
+                CloseGossipMenuFor(player);
+                player->m_Events.AddEvent(this, player->m_Events.CalculateTime(1));
+            }
+
+            bool Execute(uint64, uint32) override
+            {
+                if (!triggered)
+                {
+                    triggered = true;
+                    player->m_Events.AddEvent(this, player->m_Events.CalculateTime(1));
+                    return false;
+                }
+                if (Creature* creature = player->GetNPCIfCanInteractWith(guid, UNIT_NPC_FLAG_GOSSIP))
+                    OnGossipHello(player, creature);
+                return true;
+            }
+
+            ObjectGuid guid;
+            Player* player;
+            bool triggered;
+        };
+
         bool GossipHello(Player* player) override
+        {
+            return OnGossipHello(player, me);
+        }
+
+        static bool OnGossipHello(Player* player, Creature* creature)
         {
             AddGossipItemFor(player, GOSSIP_ICON_BATTLE, "Select slot of the item to reforge:", 0, Melt(MAIN_MENU, 0));
             for (uint8 slot = EQUIPMENT_SLOT_START; slot < EQUIPMENT_SLOT_END; ++slot)
@@ -269,11 +302,18 @@ public:
             }
             AddGossipItemFor(player, GOSSIP_ICON_TRAINER, "Remove reforges", 0, Melt(SELECT_RESTORE, 0));
             AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Update menu", 0, Melt(MAIN_MENU, 0));
-            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
             return true;
         }
 
-        bool GossipSelect(Player* player, uint32 sender, uint32 melt) override
+        bool GossipSelect(Player* player, uint32 /*menu_id*/, uint32 gossipListId) override
+        {
+            uint32 sender = player->PlayerTalkClass->GetGossipOptionSender(gossipListId);
+            uint32 action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
+            return OnGossipSelect(player, me, sender, action);
+        }
+
+        static bool OnGossipSelect(Player* player, Creature* creature, uint32 sender, uint32 melt)
         {
             ClearGossipMenuFor(player);
 
@@ -282,7 +322,7 @@ public:
 
             switch (menu)
             {
-                case MAIN_MENU: GossipHello(player); break;
+                case MAIN_MENU: OnGossipHello(player, creature); break;
                 case SELECT_STAT_REDUCE:
                     // action = slot
                     if (Item* invItem = player->GetItemByPos(INVENTORY_SLOT_BAG_0, action))
@@ -304,18 +344,18 @@ public:
                                     }
                             }
                             AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(MAIN_MENU, 0));
-                            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+                            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
                         }
                         else
                         {
                             player->GetSession()->SendNotification("Invalid item selected");
-                            GossipHello(player);
+                            OnGossipHello(player, creature);
                         }
                     }
                     else
                     {
                         player->GetSession()->SendNotification("Invalid item selected");
-                        GossipHello(player);
+                        OnGossipHello(player, creature);
                     }
                     break;
                 case SELECT_STAT_INCREASE:
@@ -350,12 +390,12 @@ public:
                                 }
                             }
                             AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(SELECT_STAT_REDUCE, invItem->GetSlot()));
-                            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+                            SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
                         }
                         else
                         {
                             player->GetSession()->SendNotification("Invalid item selected");
-                            GossipHello(player);
+                            OnGossipHello(player, creature);
                         }
                     }
                     break;
@@ -374,7 +414,7 @@ public:
                         }
                         AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Update menu", sender, melt);
                         AddGossipItemFor(player, GOSSIP_ICON_TALK, "Back..", 0, Melt(MAIN_MENU, 0));
-                        SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, me->GetGUID());
+                        SendGossipMenuFor(player, DEFAULT_GOSSIP_MESSAGE, creature->GetGUID());
                     }
                     break;
                 case RESTORE:
@@ -385,7 +425,7 @@ public:
                             if (!player->reforgeMap.empty() && player->reforgeMap.find(sender) != player->reforgeMap.end())
                                 RemoveReforge(player, sender, true);
                         }
-                        GossipHello(player);
+                        OnGossipHello(player, creature);
                     }
                     break;
                 default: // Reforge
@@ -413,7 +453,8 @@ public:
                                 player->GetSession()->SendNotification("Invalid item selected");
                             }
                         }
-                        GossipHello(player);
+                        // OnGossipHello(player, creature);
+                        new Timed(player, creature);
                     }
             }
             return true;
@@ -431,9 +472,9 @@ public:
         };
     };
 
-    CreatureAI* GetAI(Creature* me) const override
+    CreatureAI* GetAI(Creature* creature) const override
     {
-        return new ReforgeAI(me);
+        return new ReforgeAI(creature);
     }
 };
 
