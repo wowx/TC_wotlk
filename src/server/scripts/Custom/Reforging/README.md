@@ -32,9 +32,9 @@ Using diff:
 - use cmake and compile
 
 After compiling:
-- Navigate to `\src\server\scripts\Custom\Reforging\sql\`
-- Run `characters.sql` to your characters database
- - optionally you can also insert a reforger NPC to your database by running `world_npc.sql` to your world database.
+- TrinityCore auto updater should run needed SQLs automatically.
+- If you do not use the auto updater then run files named `*_reforging.sql` from `\sql\custom` to your databases.
+- optionally you can also insert a reforger NPC to your database by running `\src\server\scripts\Custom\Reforging\sql\world_npc.sql` to your world database.
 
 #### Bugs and Contact
 Report issues and similar to https://rochet2.github.io/
