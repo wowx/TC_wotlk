@@ -19,6 +19,7 @@
 #include "Transaction.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include "DatabaseEnv.h"
 
 /*
 Reforging by Rochet2

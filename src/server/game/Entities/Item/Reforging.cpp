@@ -5,6 +5,7 @@
 #include "WorldSession.h"
 #include "Item.h"
 #include "ItemTemplate.h"
+#include "Bag.h"
 #include "ObjectGuid.h"
 #include "WorldPacket.h"
 #include "Opcodes.h"
