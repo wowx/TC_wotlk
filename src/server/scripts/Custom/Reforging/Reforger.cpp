@@ -147,13 +147,15 @@ static void UpdatePlayerReforgeStats(Item* invItem, Player* player, uint32 decre
         return; // Should have some kind of diff
 
     // Update player stats
-    player->_ApplyItemMods(invItem, invItem->GetSlot(), false);
+    if (invItem->IsEquipped())
+        player->_ApplyItemMods(invItem, invItem->GetSlot(), false);
     uint32 guidlow = invItem->GetGUID().GetCounter();
     ReforgeData& data = player->reforgeMap[guidlow];
     data.increase = increase;
     data.decrease = decrease;
     data.stat_value = stat_diff;
-    player->_ApplyItemMods(invItem, invItem->GetSlot(), true);
+    if (invItem->IsEquipped())
+        player->_ApplyItemMods(invItem, invItem->GetSlot(), true);
     // CharacterDatabase.PExecute("REPLACE INTO `custom_reforging` (`GUID`, `increase`, `decrease`, `stat_value`) VALUES (%u, %u, %u, %i)", guidlow, increase, decrease, stat_diff);
     player->ModifyMoney(pProto->SellPrice < (10 * GOLD) ? (-10 * GOLD) : -(int32)pProto->SellPrice);
     SendReforgePacket(player, invItem->GetEntry(), 0, &data);
@@ -194,13 +196,13 @@ public:
             {
                 uint32 lowGUID = (*result)[0].GetUInt32();
                 Item* invItem = player->GetItemByGuid(ObjectGuid(HighGuid::Item, 0, lowGUID));
-                if (invItem)
+                if (invItem && invItem->IsEquipped())
                     player->_ApplyItemMods(invItem, invItem->GetSlot(), false);
                 ReforgeData& data = player->reforgeMap[lowGUID];
                 data.increase = (*result)[1].GetUInt32();
                 data.decrease = (*result)[2].GetUInt32();
                 data.stat_value = (*result)[3].GetInt32();
-                if (invItem)
+                if (invItem && invItem->IsEquipped())
                     player->_ApplyItemMods(invItem, invItem->GetSlot(), true);
                 // SendReforgePacket(player, entry, lowGUID);
             } while (result->NextRow());
