@@ -770,11 +770,11 @@ public:
         if (scale <= 0.0f)
         {
             scale = object->GetGOInfo()->size;
-            const_cast<GameObjectData*>(object->GetGOData())->size = -1.0f;
+            const_cast<GameObjectData*>(object->GetGameObjectData())->size = -1.0f;
         }
         else
         {
-            const_cast<GameObjectData*>(object->GetGOData())->size = scale;
+            const_cast<GameObjectData*>(object->GetGameObjectData())->size = scale;
         }
 
         object->SetObjectScale(scale);
