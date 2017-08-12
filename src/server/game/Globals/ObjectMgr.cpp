@@ -2228,7 +2228,7 @@ void ObjectMgr::LoadSpawnGroupTemplates()
             group.isActive = !(group.flags & SPAWNGROUP_FLAG_MANUAL_SPAWN);
         } while (result->NextRow());
     }
-    
+
     if (_spawnGroupDataStore.find(0) == _spawnGroupDataStore.end())
     {
         TC_LOG_ERROR("server.loading", "Default spawn group (index 0) is missing from DB! Manually inserted.");
@@ -2356,7 +2356,7 @@ void ObjectMgr::LoadInstanceSpawnGroups()
         InstanceSpawnGroupInfo& info = vector.back();
         info.SpawnGroupId = spawnGroupId;
         info.BossStateId = fields[1].GetUInt8();
-        
+
         uint8 const ALL_STATES = (1 << TO_BE_DECIDED) - 1;
         uint8 const states = fields[2].GetUInt8();
         if (states & ~ALL_STATES)
@@ -2375,7 +2375,7 @@ void ObjectMgr::LoadInstanceSpawnGroups()
         }
         else
             info.Flags = flags;
-        
+
         ++n;
     } while (result->NextRow());
 
