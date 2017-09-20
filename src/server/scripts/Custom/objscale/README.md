@@ -9,8 +9,8 @@ Source: http://rochet2.github.io/Objscale.html
 
 Available as:
 - Direct merge: https://github.com/Rochet2/TrinityCore/tree/objscale_6.x
-- Diff: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:6.x...objscale_6.x.diff
-- Diff in github view: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:6.x...objscale_6.x
+- Diff: https://github.com/Rochet2/TrinityCore/compare/Rochet2:6.x...objscale_6.x.diff
+- Diff in github view: https://github.com/Rochet2/TrinityCore/compare/Rochet2:6.x...objscale_6.x
 
 Using direct merge:
 - open git bash to source location
