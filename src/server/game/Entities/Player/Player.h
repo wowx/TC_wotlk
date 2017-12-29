@@ -21,6 +21,7 @@
 
 #include "Unit.h"
 #include "DatabaseEnvFwd.h"
+#include "DataMap.h"
 #include "DBCEnums.h"
 #include "EquipmentSet.h"
 #include "GroupReference.h"
@@ -2133,6 +2134,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         std::string GetMapAreaAndZoneString() const;
         std::string GetCoordsMapAreaAndZoneString() const;
+
+        DataMap DataMap;
 
     protected:
         // Gamemaster whisper whitelist
