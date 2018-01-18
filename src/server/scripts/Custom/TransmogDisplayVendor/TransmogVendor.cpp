@@ -516,29 +516,29 @@ public:
                     delete TransmogDisplayVendorMgr::optionMap[i][j][k], TransmogDisplayVendorMgr::optionMap[i][j][k] = nullptr;
 
         std::unordered_set<uint32> displays;
-        ItemTemplateContainer const* its = sObjectMgr->GetItemTemplateStore();
-        for (ItemTemplateContainer::const_iterator itr = its->begin(); itr != its->end(); ++itr)
+        for (auto const& v : sObjectMgr->GetItemTemplateStore())
         {
-            if (itr->second.Class != ITEM_CLASS_WEAPON && itr->second.Class != ITEM_CLASS_ARMOR)
+            auto const& temp = v.second;
+            if (temp.Class != ITEM_CLASS_WEAPON && temp.Class != ITEM_CLASS_ARMOR)
                 continue;
-            if (!TransmogDisplayVendorMgr::SuitableForTransmogrification(nullptr, &itr->second))
+            if (!TransmogDisplayVendorMgr::SuitableForTransmogrification(nullptr, &temp))
                 continue;
-            if (displays.find(itr->second.DisplayInfoID) != displays.end()) // skip duplicate item displays
+            if (displays.find(temp.DisplayInfoID) != displays.end()) // skip duplicate item displays
                 continue;
-            TransmogDisplayVendorMgr::EntryVector* oM = TransmogDisplayVendorMgr::optionMap[(itr->second.Class != ITEM_CLASS_WEAPON ? MAX_ITEM_SUBCLASS_WEAPON : 0) + itr->second.SubClass][TransmogDisplayVendorMgr::getCorrectInvType(itr->second.InventoryType)][itr->second.Quality];
+            TransmogDisplayVendorMgr::EntryVector* oM = TransmogDisplayVendorMgr::optionMap[(temp.Class != ITEM_CLASS_WEAPON ? MAX_ITEM_SUBCLASS_WEAPON : 0) + temp.SubClass][TransmogDisplayVendorMgr::getCorrectInvType(temp.InventoryType)][temp.Quality];
             if (!oM)
             {
                 oM = new TransmogDisplayVendorMgr::EntryVector();
-                TransmogDisplayVendorMgr::optionMap[(itr->second.Class != ITEM_CLASS_WEAPON ? MAX_ITEM_SUBCLASS_WEAPON : 0) + itr->second.SubClass][TransmogDisplayVendorMgr::getCorrectInvType(itr->second.InventoryType)][itr->second.Quality] = oM;
+                TransmogDisplayVendorMgr::optionMap[(temp.Class != ITEM_CLASS_WEAPON ? MAX_ITEM_SUBCLASS_WEAPON : 0) + temp.SubClass][TransmogDisplayVendorMgr::getCorrectInvType(temp.InventoryType)][temp.Quality] = oM;
             }
             if (oM->size() < MAX_VENDOR_ITEMS * 3)
             {
-                oM->push_back(itr->second.ItemId);
-                displays.insert(itr->second.DisplayInfoID);
+                oM->push_back(temp.ItemId);
+                displays.insert(temp.DisplayInfoID);
             }
             else
             {
-                TC_LOG_INFO("server.loading", "Too many items for transmogrification: Class: %u SubClass: %u InventoryType: %u Quality: %u", itr->second.Class, itr->second.SubClass, TransmogDisplayVendorMgr::getCorrectInvType(itr->second.InventoryType), itr->second.Quality);
+                TC_LOG_INFO("server.loading", "Too many items for transmogrification: Class: %u SubClass: %u InventoryType: %u Quality: %u", temp.Class, temp.SubClass, TransmogDisplayVendorMgr::getCorrectInvType(temp.InventoryType), temp.Quality);
             }
         }
 
