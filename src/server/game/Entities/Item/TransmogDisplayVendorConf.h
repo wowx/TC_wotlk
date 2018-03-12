@@ -123,6 +123,7 @@ public:
 
     static const bool AllowMixedArmorTypes;
     static const bool AllowMixedWeaponTypes;
+    static const bool AllowMixedInventoryTypes;
     static const bool AllowFishingPoles;
 
     static const bool IgnoreReqRace;

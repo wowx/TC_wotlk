@@ -54,6 +54,7 @@ const bool TransmogDisplayVendorMgr::AllowHeirloom = true;
 
 const bool TransmogDisplayVendorMgr::AllowMixedArmorTypes = false;
 const bool TransmogDisplayVendorMgr::AllowMixedWeaponTypes = false;
+const bool TransmogDisplayVendorMgr::AllowMixedInventoryTypes = false;
 const bool TransmogDisplayVendorMgr::AllowFishingPoles = false;
 
 const bool TransmogDisplayVendorMgr::IgnoreReqRace = false;
@@ -197,6 +198,7 @@ bool TransmogDisplayVendorMgr::CanTransmogrifyItemWithItem(Player* player, ItemT
     if (source->InventoryType != target->InventoryType)
     {
         if (source->Class == ITEM_CLASS_WEAPON && !((IsRangedWeapon(target->Class, target->SubClass) ||
+            AllowMixedInventoryTypes ||
             ((target->InventoryType == INVTYPE_WEAPON || target->InventoryType == INVTYPE_2HWEAPON) &&
             (source->InventoryType == INVTYPE_WEAPON || source->InventoryType == INVTYPE_2HWEAPON)) ||
                 ((target->InventoryType == INVTYPE_WEAPONMAINHAND || target->InventoryType == INVTYPE_WEAPONOFFHAND) &&
@@ -546,6 +548,9 @@ uint32 TransmogDisplayVendorMgr::getCorrectInvType(uint32 inventorytype)
 {
     switch (inventorytype)
     {
+        case INVTYPE_2HWEAPON:
+            if (!AllowMixedInventoryTypes)
+                break;
         case INVTYPE_WEAPONMAINHAND:
         case INVTYPE_WEAPONOFFHAND:
             return INVTYPE_WEAPON;
@@ -554,6 +559,7 @@ uint32 TransmogDisplayVendorMgr::getCorrectInvType(uint32 inventorytype)
         case INVTYPE_ROBE:
             return INVTYPE_CHEST;
         default:
-            return inventorytype;
+            break;
     }
+    return inventorytype;
 }
