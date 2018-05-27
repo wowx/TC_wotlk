@@ -55,6 +55,7 @@ script:
   - mysql -uroot < sql/create/drop_mysql.sql
   - cd bin
   - make -j 4 -k && make install
+  - mv check_install/etc/worldserver.conf.dist check_install/etc/worldserver.conf
   - cd check_install/bin
   - ./authserver --version
   - ./worldserver --version
