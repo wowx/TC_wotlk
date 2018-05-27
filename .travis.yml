@@ -52,7 +52,6 @@ script:
   - ./contrib/check_updates.sh characters 3.3.5 characters
   - mysql -utrinity -ptrinity world < sql/base/dev/world_database.sql
   - cat sql/updates/world/3.3.5/*.sql | mysql -utrinity -ptrinity world
-  - mysql -uroot < sql/create/drop_mysql.sql
   - cd bin
   - make -j 4 -k && make install
   - mv check_install/etc/worldserver.conf.dist check_install/etc/worldserver.conf
@@ -60,3 +59,4 @@ script:
   - ./authserver --version
   - ./worldserver --version
   - ./worldserver --dbsetup
+  - mysql -uroot < sql/create/drop_mysql.sql
