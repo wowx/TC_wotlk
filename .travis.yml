@@ -58,3 +58,4 @@ script:
   - cd check_install/bin
   - ./authserver --version
   - ./worldserver --version
+  - ./worldserver --dbsetup
