@@ -59,4 +59,5 @@ script:
   - ./authserver --version
   - ./worldserver --version
   - ./worldserver --dbsetup
+  - cd ../../..
   - mysql -uroot < sql/create/drop_mysql.sql
