@@ -1,4 +1,4 @@
-# Reforging [![Build Status](https://travis-ci.org/Rochet2/TrinityCore.svg?branch=reforging)](https://travis-ci.org/Rochet2/TrinityCore)
+# Reforging [![Build Status](https://travis-ci.org/Rochet2/TrinityCore.svg?branch=reforging_3.3.5)](https://travis-ci.org/Rochet2/TrinityCore)
 
 #### About
 Blizz*like* reforging
@@ -13,22 +13,22 @@ Video: https://youtu.be/84EtvKTfqQM
 #### Installation
 
 Available as:
-- Direct merge: https://github.com/Rochet2/TrinityCore/tree/reforging
-- Diff: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...reforging.diff
-- Diff in github view: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...reforging
+- Direct merge: https://github.com/Rochet2/TrinityCore/tree/reforging_3.3.5
+- Diff: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...reforging_3.3.5.diff
+- Diff in github view: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...reforging_3.3.5
 
 Using direct merge:
 - open git bash to source location
 - do `git remote add rochet2 https://github.com/Rochet2/TrinityCore.git`
-- do `git pull rochet2 reforging`
+- do `git pull rochet2 reforging_3.3.5`
 - use cmake and compile
 
 Using diff:
 - DO NOT COPY THE DIFF DIRECTLY! It causes apply to fail.
 - download the diff by __right clicking__ the link and select __Save link as__
-- place the downloaded `reforging.diff` to the source root folder
+- place the downloaded `reforging_3.3.5.diff` to the source root folder
 - open git bash to source location
-- do `git apply reforging.diff`
+- do `git apply reforging_3.3.5.diff`
 - use cmake and compile
 
 After compiling:
