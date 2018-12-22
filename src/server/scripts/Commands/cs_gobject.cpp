@@ -34,6 +34,7 @@ EndScriptData */
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
+#include "PhasingHandler.h"
 #include "Player.h"
 #include "PoolMgr.h"
 #include "RBAC.h"
@@ -146,7 +147,7 @@ public:
         if (!object)
             return false;
 
-        object->CopyPhaseFrom(player);
+        PhasingHandler::InheritPhaseShift(object, player);
 
         if (spawntimeSecs)
         {
@@ -155,7 +156,7 @@ public:
         }
 
         // fill the gameobject data and save to the db
-        object->SaveToDB(map->GetId(), UI64LIT(1) << map->GetSpawnMode());
+        object->SaveToDB(map->GetId(), { map->GetDifficultyID() });
         ObjectGuid::LowType spawnId = object->GetSpawnId();
 
         // delete the old object and do a clean load from DB with a fresh new GameObject instance.
@@ -662,6 +663,13 @@ public:
             object->SetByteValue(GAMEOBJECT_BYTES_1, uint8(objectType), uint8(objectState));
         else if (objectType == 4)
             object->SendCustomAnim(objectState);
+        else if (objectType == 5)
+        {
+            if (objectState < 0 || objectState > GO_DESTRUCTIBLE_REBUILDING)
+                return false;
+
+            object->SetDestructibleState(GameObjectDestructibleState(objectState));
+        }
 
         handler->PSendSysMessage("Set gobject type %d state %d", objectType, objectState);
         return true;

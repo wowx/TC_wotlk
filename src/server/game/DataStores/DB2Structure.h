@@ -219,6 +219,26 @@ struct ArtifactQuestXPEntry
     uint32 Difficulty[10];
 };
 
+struct ArtifactTierEntry
+{
+    uint32 ID;
+    uint32 ArtifactTier;
+    uint32 MaxNumTraits;
+    uint32 MaxArtifactKnowledge;
+    uint32 KnowledgePlayerCondition;
+    uint32 MinimumEmpowerKnowledge;
+};
+
+struct ArtifactUnlockEntry
+{
+    uint32 ID;
+    uint16 ItemBonusListID;
+    uint8 PowerRank;
+    uint32 PowerID;
+    uint32 PlayerConditionID;
+    uint8 ArtifactID;
+};
+
 struct AuctionHouseEntry
 {
     uint32 ID;
@@ -328,6 +348,16 @@ struct BroadcastTextEntry
     uint8 Flags;
     int32 ConditionID;
     uint32 SoundEntriesID[2];
+};
+
+struct Cfg_RegionsEntry
+{
+    uint32 ID;
+    char const* Tag;
+    uint32 Raidorigin;                                              // Date of first raid reset, all other resets are calculated as this date plus interval
+    uint32 ChallengeOrigin;
+    uint16 RegionID;
+    uint8 RegionGroupMask;
 };
 
 struct CharacterFacialHairStylesEntry
@@ -1500,6 +1530,14 @@ struct ItemLimitCategoryEntry
     uint8 Flags;
 };
 
+struct ItemLimitCategoryConditionEntry
+{
+    uint32 ID;
+    int8 AddQuantity;
+    uint32 PlayerConditionID;
+    int32 ParentItemLimitCategoryID;
+};
+
 struct ItemModifiedAppearanceEntry
 {
     int32 ItemID;
@@ -2205,6 +2243,14 @@ struct RewardPackEntry
     uint8 ArtifactXPCategoryID;
     int32 CharTitleID;
     uint32 TreasurePickerID;
+};
+
+struct RewardPackXCurrencyTypeEntry
+{
+    uint32 ID;
+    uint32 CurrencyTypeID;
+    int32 Quantity;
+    uint32 RewardPackID;
 };
 
 struct RewardPackXItemEntry

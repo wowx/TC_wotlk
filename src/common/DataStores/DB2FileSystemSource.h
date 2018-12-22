@@ -15,18 +15,25 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef PhaseShift_h__
-#define PhaseShift_h__
+#ifndef DB2FileSystemSource_h__
+#define DB2FileSystemSource_h__
 
-#include "Define.h"
-#include <set>
+#include "DB2FileLoader.h"
+#include <string>
 
-class PhaseShift
+struct TC_COMMON_API DB2FileSystemSource : public DB2FileSource
 {
+    DB2FileSystemSource(std::string const& fileName);
+    ~DB2FileSystemSource();
+    bool IsOpen() const override;
+    bool Read(void* buffer, std::size_t numBytes) override;
+    std::size_t GetPosition() const override;
+    std::size_t GetFileSize() const override;
+    char const* GetFileName() const override;
+
 private:
-    std::set<uint32> _phases;
-    std::set<uint32> _terrainSwaps;
-    std::set<uint32> _worldMapAreaSwaps;
+    std::string _fileName;
+    FILE* _file;
 };
 
-#endif // PhaseShift_h__
+#endif // DB2FileSystemSource_h__

@@ -344,19 +344,24 @@ void QuestMenu::ClearMenu()
     _questMenuItems.clear();
 }
 
-void PlayerMenu::SendQuestGiverQuestListMessage(ObjectGuid guid)
+void PlayerMenu::SendQuestGiverQuestListMessage(Object* questgiver)
 {
+    ObjectGuid guid = questgiver->GetGUID();
+    LocaleConstant localeConstant = _session->GetSessionDbLocaleIndex();
+
     WorldPackets::Quest::QuestGiverQuestListMessage questList;
     questList.QuestGiverGUID = guid;
 
-    if  (QuestGreeting const* questGreeting = sObjectMgr->GetQuestGreeting(guid))
+    if (QuestGreeting const* questGreeting = sObjectMgr->GetQuestGreeting(questgiver->GetTypeId(), questgiver->GetEntry()))
     {
-        questList.GreetEmoteDelay = questGreeting->greetEmoteDelay;
-        questList.GreetEmoteType = questGreeting->greetEmoteType;
-        questList.Greeting = questGreeting->greeting;
+        questList.GreetEmoteDelay = questGreeting->EmoteDelay;
+        questList.GreetEmoteType = questGreeting->EmoteType;
+        questList.Greeting = questGreeting->Text;
+
+        if (localeConstant != LOCALE_enUS)
+            if (QuestGreetingLocale const* questGreetingLocale = sObjectMgr->GetQuestGreetingLocale(questgiver->GetTypeId(), questgiver->GetEntry()))
+                ObjectMgr::GetLocaleString(questGreetingLocale->Greeting, localeConstant, questList.Greeting);
     }
-    else
-        TC_LOG_ERROR("misc", "Guid: %s - No quest greeting found.", guid.ToString().c_str());
 
     // Store this instead of checking the Singleton every loop iteration
     bool questLevelInTitle = sWorld->getBoolConfig(CONFIG_UI_QUESTLEVELS_IN_DIALOGS);
@@ -371,7 +376,6 @@ void PlayerMenu::SendQuestGiverQuestListMessage(ObjectGuid guid)
         {
             std::string title = quest->GetLogTitle();
 
-            LocaleConstant localeConstant = _session->GetSessionDbLocaleIndex();
             if (localeConstant != LOCALE_enUS)
                 if (QuestTemplateLocale const* questTemplateLocale = sObjectMgr->GetQuestLocale(questID))
                     ObjectMgr::GetLocaleString(questTemplateLocale->LogTitle, localeConstant, title);
@@ -437,7 +441,7 @@ void PlayerMenu::SendQuestGiverQuestDetails(Quest const* quest, ObjectGuid npcGU
     packet.PortraitTurnIn = quest->GetQuestTurnInPortrait();
     packet.AutoLaunched = autoLaunched;
     packet.DisplayPopup = displayPopup;
-    packet.QuestFlags[0] = quest->GetFlags();
+    packet.QuestFlags[0] = quest->GetFlags() & (sWorld->getBoolConfig(CONFIG_QUEST_IGNORE_AUTO_ACCEPT) ? ~QUEST_FLAGS_AUTO_ACCEPT : ~0);
     packet.QuestFlags[1] = quest->GetFlagsEx();
     packet.SuggestedPartyMembers = quest->GetSuggestedPlayers();
 

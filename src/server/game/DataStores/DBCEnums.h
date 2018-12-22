@@ -146,14 +146,25 @@ enum AreaMountFlags
     AREA_MOUNT_FLAG_UNDERWATER_ALLOWED  = 0x8
 };
 
+enum ArtifactCategory : uint32
+{
+    ARTIFACT_CATEGORY_PRIMARY = 1,
+    ARTIFACT_CATEGORY_FISHING = 2
+};
+
 enum ArtifactPowerFlag : uint8
 {
     ARTIFACT_POWER_FLAG_GOLD                        = 0x01,
-    ARTIFACT_POWER_FLAG_FIRST                       = 0x02,
+    ARTIFACT_POWER_FLAG_NO_LINK_REQUIRED            = 0x02,
     ARTIFACT_POWER_FLAG_FINAL                       = 0x04,
     ARTIFACT_POWER_FLAG_SCALES_WITH_NUM_POWERS      = 0x08,
     ARTIFACT_POWER_FLAG_DONT_COUNT_FIRST_BONUS_RANK = 0x10,
+    ARTIFACT_POWER_FLAG_MAX_RANK_WITH_TIER          = 0x20,
+
+    ARTIFACT_POWER_FLAG_FIRST                       = ARTIFACT_POWER_FLAG_NO_LINK_REQUIRED | ARTIFACT_POWER_FLAG_DONT_COUNT_FIRST_BONUS_RANK,
 };
+
+#define MAX_ARTIFACT_TIER 1
 
 #define BATTLE_PET_SPECIES_MAX_ID 2164
 
@@ -714,24 +725,24 @@ enum ItemExtendedCostFlags
 
 enum ItemBonusType
 {
-    ITEM_BONUS_ITEM_LEVEL                   = 1,
-    ITEM_BONUS_STAT                         = 2,
-    ITEM_BONUS_QUALITY                      = 3,
-    ITEM_BONUS_DESCRIPTION                  = 4,
-    ITEM_BONUS_SUFFIX                       = 5,
-    ITEM_BONUS_SOCKET                       = 6,
-    ITEM_BONUS_APPEARANCE                   = 7,
-    ITEM_BONUS_REQUIRED_LEVEL               = 8,
-    ITEM_BONUS_DISPLAY_TOAST_METHOD         = 9,
-    ITEM_BONUS_REPAIR_COST_MULTIPLIER       = 10,
-    ITEM_BONUS_SCALING_STAT_DISTRIBUTION    = 11,
-    ITEM_BONUS_DISENCHANT_LOOT_ID           = 12,
-    ITEM_BONUS_SCALING_STAT_DISTRIBUTION_2  = 13,
-    ITEM_BONUS_ITEM_LEVEL_CAN_INCREASE      = 14,                 // Displays a + next to item level indicating it can warforge
-    ITEM_BONUS_RANDOM_ENCHANTMENT           = 15,                 // Responsible for showing "<Random additional stats>" or "+%d Rank Random Minor Trait" in the tooltip before item is obtained
-    ITEM_BONUS_BONDING                      = 16,
-    ITEM_BONUS_RELIC_TYPE                   = 17,
-    ITEM_BONUS_OVERRIDE_REQUIRED_LEVEL      = 18
+    ITEM_BONUS_ITEM_LEVEL                       = 1,
+    ITEM_BONUS_STAT                             = 2,
+    ITEM_BONUS_QUALITY                          = 3,
+    ITEM_BONUS_DESCRIPTION                      = 4,
+    ITEM_BONUS_SUFFIX                           = 5,
+    ITEM_BONUS_SOCKET                           = 6,
+    ITEM_BONUS_APPEARANCE                       = 7,
+    ITEM_BONUS_REQUIRED_LEVEL                   = 8,
+    ITEM_BONUS_DISPLAY_TOAST_METHOD             = 9,
+    ITEM_BONUS_REPAIR_COST_MULTIPLIER           = 10,
+    ITEM_BONUS_SCALING_STAT_DISTRIBUTION        = 11,
+    ITEM_BONUS_DISENCHANT_LOOT_ID               = 12,
+    ITEM_BONUS_SCALING_STAT_DISTRIBUTION_FIXED  = 13,
+    ITEM_BONUS_ITEM_LEVEL_CAN_INCREASE          = 14,             // Displays a + next to item level indicating it can warforge
+    ITEM_BONUS_RANDOM_ENCHANTMENT               = 15,             // Responsible for showing "<Random additional stats>" or "+%d Rank Random Minor Trait" in the tooltip before item is obtained
+    ITEM_BONUS_BONDING                          = 16,
+    ITEM_BONUS_RELIC_TYPE                       = 17,
+    ITEM_BONUS_OVERRIDE_REQUIRED_LEVEL          = 18
 };
 
 enum ItemLimitCategoryMode
@@ -812,6 +823,23 @@ enum MountFlags
     MOUNT_FLAG_PREFERRED_SWIMMING       = 0x10,
     MOUNT_FLAG_PREFERRED_WATER_WALKING  = 0x20,
     MOUNT_FLAG_HIDE_IF_UNKNOWN          = 0x40
+};
+
+enum PhaseEntryFlags : uint16
+{
+    PHASE_FLAG_NORMAL   = 0x08,
+    PHASE_FLAG_COSMETIC = 0x10,
+    PHASE_FLAG_PERSONAL = 0x20
+};
+
+// PhaseUseFlags fields in different db2s
+enum PhaseUseFlagsValues : uint8
+{
+    PHASE_USE_FLAGS_NONE            = 0x0,
+    PHASE_USE_FLAGS_ALWAYS_VISIBLE  = 0x1,
+    PHASE_USE_FLAGS_INVERSE         = 0x2,
+
+    PHASE_USE_FLAGS_ALL             = PHASE_USE_FLAGS_ALWAYS_VISIBLE | PHASE_USE_FLAGS_INVERSE
 };
 
 enum PrestigeLevelInfoFlags : uint8
@@ -940,7 +968,7 @@ enum SummonPropFlags
     SUMMON_PROP_FLAG_UNK2            = 0x00000002,          // 616 spells in 3.0.3, something friendly
     SUMMON_PROP_FLAG_UNK3            = 0x00000004,          // 22 spells in 3.0.3, no idea...
     SUMMON_PROP_FLAG_UNK4            = 0x00000008,          // 49 spells in 3.0.3, some mounts
-    SUMMON_PROP_FLAG_UNK5            = 0x00000010,          // 25 spells in 3.0.3, quest related?
+    SUMMON_PROP_FLAG_PERSONAL_SPAWN  = 0x00000010,          // Personal Spawn (creature visible only by summoner)
     SUMMON_PROP_FLAG_UNK6            = 0x00000020,          // 0 spells in 3.3.5, unused
     SUMMON_PROP_FLAG_UNK7            = 0x00000040,          // 12 spells in 3.0.3, no idea
     SUMMON_PROP_FLAG_UNK8            = 0x00000080,          // 4 spells in 3.0.3, no idea
@@ -981,7 +1009,7 @@ enum VehicleSeatFlags
 {
     VEHICLE_SEAT_FLAG_HAS_LOWER_ANIM_FOR_ENTER                         = 0x00000001,
     VEHICLE_SEAT_FLAG_HAS_LOWER_ANIM_FOR_RIDE                          = 0x00000002,
-    VEHICLE_SEAT_FLAG_UNK3                                             = 0x00000004,
+    VEHICLE_SEAT_FLAG_DISABLE_GRAVITY                                  = 0x00000004, // Passenger will not be affected by gravity
     VEHICLE_SEAT_FLAG_SHOULD_USE_VEH_SEAT_EXIT_ANIM_ON_VOLUNTARY_EXIT  = 0x00000008,
     VEHICLE_SEAT_FLAG_UNK5                                             = 0x00000010,
     VEHICLE_SEAT_FLAG_UNK6                                             = 0x00000020,
@@ -1033,7 +1061,6 @@ enum CurrencyTypes
     CURRENCY_TYPE_JUSTICE_POINTS        = 395,
     CURRENCY_TYPE_VALOR_POINTS          = 396,
     CURRENCY_TYPE_APEXIS_CRYSTALS       = 823,
-    CURRENCY_TYPE_ARTIFACT_KNOWLEDGE    = 1171,
 };
 
 enum WorldMapTransformsFlags
