@@ -1,4 +1,4 @@
-# Transmogrification Display Vendor [![Build Status](https://travis-ci.org/Rochet2/TrinityCore.svg?branch=transmogvendor)](https://travis-ci.org/Rochet2/TrinityCore)
+# Transmogrification Display Vendor [![Build Status](https://travis-ci.org/Rochet2/TrinityCore.svg?branch=transmogvendor_3.3.5)](https://travis-ci.org/Rochet2/TrinityCore)
 
 #### About
 Original idea by LilleCarl.
@@ -16,23 +16,23 @@ Video: https://youtu.be/PIheEziN_dY
 #### Installation
 
 Available as:
-- Direct merge: https://github.com/Rochet2/TrinityCore/tree/transmogvendor
-- Diff: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...transmogvendor.diff
-- Diff in github view: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...transmogvendor
+- Direct merge: https://github.com/Rochet2/TrinityCore/tree/transmogvendor_3.3.5
+- Diff: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...transmogvendor_3.3.5.diff
+- Diff in github view: https://github.com/Rochet2/TrinityCore/compare/TrinityCore:3.3.5...transmogvendor_3.3.5
 
 Using direct merge:
 - open git bash to source location
 - do `git remote add rochet2 https://github.com/Rochet2/TrinityCore.git`
-- do `git pull rochet2 transmogvendor`
+- do `git pull rochet2 transmogvendor_3.3.5`
 - optionally tweak the config settings in `src/server/game/Entities/Item/TransmogDisplayVendor.cpp`
 - use cmake and compile
 
 Using diff *(recommended)*:
 - DO NOT COPY THE DIFF DIRECTLY! It causes apply to fail.
 - download the diff by __right clicking__ the link and select __Save link as__
-- place the downloaded `transmogvendor.diff` to the source root folder
+- place the downloaded `transmogvendor_3.3.5.diff` to the source root folder
 - open git bash to source location
-- do `git apply transmogvendor.diff`
+- do `git apply transmogvendor_3.3.5.diff`
  - if using the regular transmogrification, simply use --reject with either and overwrite the parts of the other. Order doesnt matter, as long as duplicate code doesnt exist.
 - optionally tweak the config settings in `src/server/game/Entities/Item/TransmogDisplayVendor.cpp`
 - use cmake and compile
