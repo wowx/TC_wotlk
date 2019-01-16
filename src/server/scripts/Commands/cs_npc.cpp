@@ -779,7 +779,9 @@ public:
         }
 
         // update position in memory
+        sObjectMgr->RemoveCreatureFromGrid(lowguid, data);
         const_cast<CreatureData*>(data)->spawnPoint.Relocate(*player);
+        sObjectMgr->AddCreatureToGrid(lowguid, data);
 
         // update position in DB
         PreparedStatement* stmt = WorldDatabase.GetPreparedStatement(WORLD_UPD_CREATURE_POSITION);
@@ -838,7 +840,7 @@ public:
             handler->SetSentErrorMessage(true);
             return false;
         }
-        
+
         if (!sCreatureDisplayInfoStore.LookupEntry(displayId))
         {
             handler->PSendSysMessage(LANG_COMMAND_INVALID_PARAM, args);
