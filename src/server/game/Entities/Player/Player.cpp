@@ -22590,7 +22590,7 @@ void Player::SendInitialPacketsAfterAddToMap()
 
     if (setCompoundState.size() > 4)
     {
-        setCompoundState.put(0, setCompoundState.size() - 4);
+        setCompoundState.put<uint32>(0, setCompoundState.size() - 4);
         SendDirectMessage(&setCompoundState);
     }
 
