@@ -298,7 +298,9 @@ public:
 
                         DoCastAOE(SPELL_TELEPORT_BACK);
                         Talk(EMOTE_TELEPORT_2);
-
+                        me->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+                        me->SetImmuneToPC(false);
+                        me->SetReactState(REACT_AGGRESSIVE);
                         EnterPhaseGround();
                         break;
                     case EVENT_GROUND_ATTACKABLE:
