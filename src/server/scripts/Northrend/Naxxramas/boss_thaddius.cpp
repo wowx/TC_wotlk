@@ -265,7 +265,7 @@ struct boss_thaddius : public BossAI
                         feugen->AI()->DoAction(ACTION_FEUGEN_REVIVING_FX);
                     feugenAlive = false;
                     if (stalaggAlive)
-                        events.ScheduleEvent(EVENT_REVIVE_FEUGEN, 5s, 0, PHASE_PETS);
+                        events.ScheduleEvent(EVENT_REVIVE_FEUGEN, 15s, 0, PHASE_PETS);
                     else
                         Transition();
 
@@ -275,7 +275,7 @@ struct boss_thaddius : public BossAI
                         stalagg->AI()->DoAction(ACTION_STALAGG_REVIVING_FX);
                     stalaggAlive = false;
                     if (feugenAlive)
-                        events.ScheduleEvent(EVENT_REVIVE_STALAGG, 5s, 0, PHASE_PETS);
+                        events.ScheduleEvent(EVENT_REVIVE_STALAGG, 15s, 0, PHASE_PETS);
                     else
                         Transition();
 
