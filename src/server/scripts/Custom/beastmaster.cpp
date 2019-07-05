@@ -57,7 +57,7 @@ public:
         pet->SetPower(POWER_HAPPINESS, 1048000);
         pet->SetUInt64Value(UNIT_FIELD_CREATEDBY, player->GetGUID());
         pet->SetUInt32Value(UNIT_FIELD_FACTIONTEMPLATE, player->GetFaction());
-        pet->SetUInt32Value(UNIT_FIELD_LEVEL, player->getLevel());
+        pet->SetUInt32Value(UNIT_FIELD_LEVEL, player->GetLevel());
         pet->SetFullHealth();
         pet->GetMap()->AddToMap(pet->ToCreature());
 
