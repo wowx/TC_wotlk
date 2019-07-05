@@ -26,7 +26,7 @@ public:
 
     void static CreatePet(Player *player, Creature * m_creature, uint32 entry) {
 
-        if (player->getClass() != CLASS_HUNTER)
+        if (player->GetClass() != CLASS_HUNTER)
         {
             m_creature->Whisper("You are not a Hunter!", LANG_UNIVERSAL, player, false);
             player->GetSession()->SendNotification("You are not a Hunter!");
@@ -62,7 +62,7 @@ public:
         pet->GetMap()->AddToMap(pet->ToCreature());
 
         pet->GetCharmInfo()->SetPetNumber(sObjectMgr->GeneratePetNumber(), true);
-        if (!pet->InitStatsForLevel(player->getLevel()))
+        if (!pet->InitStatsForLevel(player->GetLevel()))
             pet->UpdateAllStats();
 
         player->SetMinion(pet, true);
@@ -78,7 +78,7 @@ public:
     static bool OnGossipHello(Player *player, Creature * m_creature)
     {
 
-        if (player->getClass() != CLASS_HUNTER)
+        if (player->GetClass() != CLASS_HUNTER)
         {
             m_creature->Whisper("You are not a Hunter!", LANG_UNIVERSAL, player, false);
             player->GetSession()->SendNotification("You are not a Hunter!");
