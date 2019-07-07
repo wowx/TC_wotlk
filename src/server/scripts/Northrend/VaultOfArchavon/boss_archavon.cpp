@@ -80,7 +80,7 @@ class boss_archavon : public CreatureScript
             {
                 events.ScheduleEvent(EVENT_ROCK_SHARDS, 15s);
                 events.ScheduleEvent(EVENT_CHOKING_CLOUD, 30s);
-                events.ScheduleEvent(EVENT_STOMP, 45s);
+                events.ScheduleEvent(EVENT_STOMP, 145s);
                 events.ScheduleEvent(EVENT_BERSERK, 5min);
 
                 _JustEngagedWith();
@@ -109,13 +109,13 @@ class boss_archavon : public CreatureScript
                         case EVENT_CHOKING_CLOUD:
                             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, -10.0f, true))
                             {
-                                DoCast(target, SPELL_CRUSHING_LEAP, true); //10y~80y, ignore range
+                                // DoCast(target, SPELL_CRUSHING_LEAP, true); //10y~80y, ignore range
                                 Talk(EMOTE_LEAP, target);
                             }
                             events.ScheduleEvent(EVENT_CHOKING_CLOUD, 30s);
                             break;
                         case EVENT_STOMP:
-                            DoCastVictim(SPELL_STOMP);
+                            // DoCastVictim(SPELL_STOMP);
                             events.ScheduleEvent(EVENT_IMPALE, 3s);
                             events.ScheduleEvent(EVENT_STOMP, 45s);
                             break;

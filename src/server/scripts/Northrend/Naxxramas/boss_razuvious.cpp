@@ -53,7 +53,7 @@ enum Events
 enum SummonGroups
 {
     SUMMON_GROUP_10MAN = 1,
-    SUMMON_GROUP_25MAN = 2
+    SUMMON_GROUP_25MAN = 1
 };
 
 class boss_razuvious : public CreatureScript

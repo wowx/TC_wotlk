@@ -166,11 +166,11 @@ public:
             events.SetPhase(PHASE_NORMAL);
             events.ScheduleEvent(EVENT_IMPALE, randtime(Seconds(10), Seconds(20)), 0, PHASE_NORMAL);
             events.ScheduleEvent(EVENT_SCARABS, randtime(Seconds(20), Seconds(30)), 0, PHASE_NORMAL);
-            events.ScheduleEvent(EVENT_LOCUST, Minutes(1)+randtime(Seconds(40), Seconds(60)), 0, PHASE_NORMAL);
+            events.ScheduleEvent(EVENT_LOCUST, Minutes(2)+randtime(Seconds(40), Seconds(60)), 0, PHASE_NORMAL);
             events.ScheduleEvent(EVENT_BERSERK, 10min);
 
             if (!Is25ManRaid())
-                events.ScheduleEvent(EVENT_SPAWN_GUARD, randtime(Seconds(15), Seconds(20)));
+                events.ScheduleEvent(EVENT_SPAWN_GUARD, randtime(Seconds(35), Seconds(40)));
         }
 
         void UpdateAI(uint32 diff) override
@@ -212,8 +212,8 @@ public:
                         DoCast(me, SPELL_LOCUST_SWARM);
 
                         events.ScheduleEvent(EVENT_SPAWN_GUARD, 3s);
-                        events.ScheduleEvent(EVENT_LOCUST_ENDS, RAID_MODE(Seconds(19), Seconds(23)));
-                        events.Repeat(Minutes(1)+Seconds(30));
+                        events.ScheduleEvent(EVENT_LOCUST_ENDS, RAID_MODE(Seconds(3), Seconds(5)));
+                        events.Repeat(Minutes(2)+Seconds(30));
                         break;
                     case EVENT_LOCUST_ENDS:
                         events.SetPhase(PHASE_NORMAL);
