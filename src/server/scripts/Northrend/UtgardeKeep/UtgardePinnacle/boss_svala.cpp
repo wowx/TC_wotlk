@@ -368,9 +368,9 @@ class boss_svala : public CreatureScript
                             events.ScheduleEvent(EVENT_SPAWN_RITUAL_CHANNELERS, 1 * IN_MILLISECONDS, 0, SACRIFICING);
                             break;
                         case EVENT_SPAWN_RITUAL_CHANNELERS:
-                            DoCast(me, SPELL_RITUAL_CHANNELER_1, true);
-                            DoCast(me, SPELL_RITUAL_CHANNELER_2, true);
-                            DoCast(me, SPELL_RITUAL_CHANNELER_3, true);
+                            // DoCast(me, SPELL_RITUAL_CHANNELER_1, true);
+                            // DoCast(me, SPELL_RITUAL_CHANNELER_2, true);
+                            // DoCast(me, SPELL_RITUAL_CHANNELER_3, true);
                             events.ScheduleEvent(EVENT_RITUAL_STRIKE, 2 * IN_MILLISECONDS, 0, SACRIFICING);
                             break;
                         case EVENT_RITUAL_STRIKE:
@@ -440,7 +440,7 @@ class npc_ritual_channeler : public CreatureScript
                 if (paralyzeTimer <= diff)
                 {
                     if (Unit* victim = ObjectAccessor::GetUnit(*me, instance->GetGuidData(DATA_SACRIFICED_PLAYER)))
-                        DoCast(victim, SPELL_PARALYZE, false);
+                        // DoCast(victim, SPELL_PARALYZE, false);
 
                     paralyzeTimer = 200;
                 }
