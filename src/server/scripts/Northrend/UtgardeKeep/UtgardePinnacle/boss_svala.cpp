@@ -265,7 +265,7 @@ class boss_svala : public CreatureScript
                         case EVENT_INTRO_ARTHAS_TALK_0:
                             if (Creature* arthas = ObjectAccessor::GetCreature(*me, _arthasGUID))
                                 arthas->AI()->Talk(SAY_DIALOG_OF_ARTHAS_1);
-                            events.ScheduleEvent(EVENT_INTRO_TRANSFORM_0, 10 * IN_MILLISECONDS, 0, INTRO);
+                            events.ScheduleEvent(EVENT_INTRO_TRANSFORM_0, 18.2 * IN_MILLISECONDS, 0, INTRO);
                             break;
                         case EVENT_INTRO_TRANSFORM_0:
                         {
@@ -305,6 +305,7 @@ class boss_svala : public CreatureScript
                             me->UpdateEntry(NPC_SVALA_SORROWGRAVE);
                             me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
                             events.ScheduleEvent(EVENT_INTRO_SVALA_TALK_1, 6 * IN_MILLISECONDS, 0, INTRO);
+                            events.ScheduleEvent(EVENT_INTRO_ARTHAS_TALK_1, 12 * IN_MILLISECONDS, 0, INTRO);
                             break;
                         case EVENT_INTRO_SVALA_TALK_1:
                             Talk(SAY_SVALA_INTRO_1);
