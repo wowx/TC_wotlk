@@ -305,7 +305,6 @@ class boss_svala : public CreatureScript
                             me->UpdateEntry(NPC_SVALA_SORROWGRAVE);
                             me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
                             events.ScheduleEvent(EVENT_INTRO_SVALA_TALK_1, 6 * IN_MILLISECONDS, 0, INTRO);
-                            events.ScheduleEvent(EVENT_INTRO_ARTHAS_TALK_1, 12 * IN_MILLISECONDS, 0, INTRO);
                             break;
                         case EVENT_INTRO_SVALA_TALK_1:
                             Talk(SAY_SVALA_INTRO_1);
@@ -369,13 +368,13 @@ class boss_svala : public CreatureScript
                             events.ScheduleEvent(EVENT_SPAWN_RITUAL_CHANNELERS, 1 * IN_MILLISECONDS, 0, SACRIFICING);
                             break;
                         case EVENT_SPAWN_RITUAL_CHANNELERS:
-                            // DoCast(me, SPELL_RITUAL_CHANNELER_1, true);
+                            DoCast(me, SPELL_RITUAL_CHANNELER_1, true);
                             // DoCast(me, SPELL_RITUAL_CHANNELER_2, true);
                             // DoCast(me, SPELL_RITUAL_CHANNELER_3, true);
                             events.ScheduleEvent(EVENT_RITUAL_STRIKE, 2 * IN_MILLISECONDS, 0, SACRIFICING);
                             break;
                         case EVENT_RITUAL_STRIKE:
-                            me->StopMoving();
+                            // me->StopMoving();
                             me->GetMotionMaster()->MoveIdle();
                             me->InterruptNonMeleeSpells(true);
                             DoCast(me, SPELL_RITUAL_STRIKE_TRIGGER, true);
