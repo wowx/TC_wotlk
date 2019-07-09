@@ -244,7 +244,7 @@ class boss_svala : public CreatureScript
 
                 events.Update(diff);
 
-                if (!_sacrificed && HealthBelowPct(50))
+                if (!_sacrificed && HealthBelowPct(0)) // 50
                 {
                     _sacrificed = true;
                     events.SetPhase(SACRIFICING);
@@ -265,7 +265,7 @@ class boss_svala : public CreatureScript
                         case EVENT_INTRO_ARTHAS_TALK_0:
                             if (Creature* arthas = ObjectAccessor::GetCreature(*me, _arthasGUID))
                                 arthas->AI()->Talk(SAY_DIALOG_OF_ARTHAS_1);
-                            events.ScheduleEvent(EVENT_INTRO_TRANSFORM_0, 18.2 * IN_MILLISECONDS, 0, INTRO);
+                            events.ScheduleEvent(EVENT_INTRO_TRANSFORM_0, 10 * IN_MILLISECONDS, 0, INTRO);
                             break;
                         case EVENT_INTRO_TRANSFORM_0:
                         {
@@ -292,7 +292,7 @@ class boss_svala : public CreatureScript
                         }
                         case EVENT_INTRO_TRANSFORM_1:
                             me->CastSpell(me, SPELL_SVALA_TRANSFORMING1, true);
-                            events.ScheduleEvent(EVENT_INTRO_TRANSFORM_2, 8.2 * IN_MILLISECONDS, 0, INTRO);
+                            events.ScheduleEvent(EVENT_INTRO_TRANSFORM_2, 6.2 * IN_MILLISECONDS, 0, INTRO);
                             break;
                         case EVENT_INTRO_TRANSFORM_2:
                             me->CastSpell(me, SPELL_SVALA_TRANSFORMING2, true);
@@ -303,7 +303,7 @@ class boss_svala : public CreatureScript
                             }
                             me->RemoveAllAuras();
                             me->UpdateEntry(NPC_SVALA_SORROWGRAVE);
-                            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                            // me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
                             events.ScheduleEvent(EVENT_INTRO_SVALA_TALK_1, 6 * IN_MILLISECONDS, 0, INTRO);
                             break;
                         case EVENT_INTRO_SVALA_TALK_1:
@@ -375,7 +375,7 @@ class boss_svala : public CreatureScript
                             break;
                         case EVENT_RITUAL_STRIKE:
                             // me->StopMoving();
-                            me->GetMotionMaster()->MoveIdle();
+                            // me->GetMotionMaster()->MoveIdle();
                             me->InterruptNonMeleeSpells(true);
                             DoCast(me, SPELL_RITUAL_STRIKE_TRIGGER, true);
                             events.ScheduleEvent(EVENT_RITUAL_DISARM, 200, 0, SACRIFICING);
