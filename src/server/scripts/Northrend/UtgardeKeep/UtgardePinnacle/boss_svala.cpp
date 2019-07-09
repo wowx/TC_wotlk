@@ -291,11 +291,11 @@ class boss_svala : public CreatureScript
                             break;
                         }
                         case EVENT_INTRO_TRANSFORM_1:
-                            me->CastSpell(me, SPELL_SVALA_TRANSFORMING1, false);
-                            events.ScheduleEvent(EVENT_INTRO_TRANSFORM_2, 6.2 * IN_MILLISECONDS, 0, INTRO);
+                            me->CastSpell(me, SPELL_SVALA_TRANSFORMING1, true);
+                            events.ScheduleEvent(EVENT_INTRO_TRANSFORM_2, 8.2 * IN_MILLISECONDS, 0, INTRO);
                             break;
                         case EVENT_INTRO_TRANSFORM_2:
-                            me->CastSpell(me, SPELL_SVALA_TRANSFORMING2, false);
+                            me->CastSpell(me, SPELL_SVALA_TRANSFORMING2, true);
                             if (Creature* arthas = ObjectAccessor::GetCreature(*me, _arthasGUID))
                             {
                                 arthas->InterruptNonMeleeSpells(true);
