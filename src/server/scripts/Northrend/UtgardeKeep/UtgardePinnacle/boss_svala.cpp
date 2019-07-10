@@ -303,7 +303,7 @@ class boss_svala : public CreatureScript
                             }
                             me->RemoveAllAuras();
                             me->UpdateEntry(NPC_SVALA_SORROWGRAVE);
-                            // me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
+                            me->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
                             events.ScheduleEvent(EVENT_INTRO_SVALA_TALK_1, 6 * IN_MILLISECONDS, 0, INTRO);
                             break;
                         case EVENT_INTRO_SVALA_TALK_1:
