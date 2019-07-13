@@ -227,8 +227,8 @@ enum Texts
     EMOTE_POWER_SPARK_SUMMONED          = 0
 };
 
-#define MAX_SUMMONS_PHASE_TWO_10MAN       6
-#define MAX_SUMMONS_PHASE_TWO_25MAN       12
+#define MAX_SUMMONS_PHASE_TWO_10MAN       2 // 6
+#define MAX_SUMMONS_PHASE_TWO_25MAN       4 // 12
 
 #define MAX_RANGE_HOVER_DISK_SPAWNPOINTS       8
 Position const RangeHoverDisksSpawnPositions[MAX_RANGE_HOVER_DISK_SPAWNPOINTS] =

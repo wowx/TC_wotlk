@@ -189,7 +189,7 @@ public:
                         // each trigger have to cast the spell to 5 players.
                         for (auto* ref : malygos->GetThreatManager().GetUnsortedThreatList())
                         {
-                            if (counter >= 5)
+                            if (counter >= 2) // 5
                                 break;
 
                             if (Player* player = ref->GetVictim()->ToPlayer())
