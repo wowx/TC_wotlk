@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2008-2019 TrinityCore <https://www.trinitycore.org/>
- * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -16,27 +15,9 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TRINITY_TOTEMAI_H
-#define TRINITY_TOTEMAI_H
+#include "CommonPredicates.h"
+#include "Common.h"
+#include "Unit.h"
+#include "SharedDefines.h"
 
-#include "CreatureAI.h"
-#include "PassiveAI.h"
-#include "Timer.h"
-
-class Creature;
-class Totem;
-
-class TC_GAME_API TotemAI : public NullCreatureAI
-{
-    public:
-        explicit TotemAI(Creature* creature);
-
-        void AttackStart(Unit* victim) override;
-
-        void UpdateAI(uint32 diff) override;
-        static int32 Permissible(Creature const* creature);
-
-    private:
-        ObjectGuid _victimGUID;
-};
-#endif
+Trinity::Predicates::IsVictimOf::IsVictimOf(Unit const* attacker) : _victim(attacker ? attacker->GetVictim() : nullptr) { }
