@@ -93,7 +93,7 @@ enum Races
     RACE_TROLL              = 8,  // TITLE Troll
     //RACE_GOBLIN             = 9,
     RACE_BLOODELF           = 10, // TITLE Blood Elf
-    RACE_DRAENEI            = 11  // TITLE Draenei
+    RACE_DRAENEI            = 11 //, TITLE Draenei
     //RACE_FEL_ORC            = 12,
     //RACE_NAGA               = 13,
     //RACE_BROKEN             = 14,
@@ -3537,6 +3537,23 @@ enum MailResponseResult
     MAIL_ERR_TOO_MANY_ATTACHMENTS      = 18,
     MAIL_ERR_MAIL_ATTACHMENT_INVALID   = 19,
     MAIL_ERR_ITEM_HAS_EXPIRED          = 21
+};
+
+enum PetTameFailure
+{
+    PETTAME_INVALIDCREATURE         = 1,
+    PETTAME_TOOMANY                 = 2,
+    PETTAME_CREATUREALREADYOWNED    = 3,
+    PETTAME_NOTTAMEABLE             = 4,
+    PETTAME_ANOTHERSUMMONACTIVE     = 5,
+    PETTAME_UNITSCANTTAME           = 6,
+    PETTAME_NOPETAVAILABLE          = 7,
+    PETTAME_INTERNALERROR           = 8,
+    PETTAME_TOOHIGHLEVEL            = 9,
+    PETTAME_DEAD                    = 10,
+    PETTAME_NOTDEAD                 = 11,
+    PETTAME_CANTCONTROLEXOTIC       = 12,
+    PETTAME_UNKNOWNERROR            = 13
 };
 
 // EnumUtils: DESCRIBE THIS
