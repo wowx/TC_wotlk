@@ -558,7 +558,7 @@ void Channel::SetOwner(Player const* player, std::string const& newname)
     Player* newp = ObjectAccessor::FindConnectedPlayerByName(newname);
     ObjectGuid victim = newp ? newp->GetGUID() : ObjectGuid::Empty;
 
-    if (!newp !victim || !IsOn(victim) ||
+    if (!newp || !victim || !IsOn(victim) ||
         (player->GetTeam() != newp->GetTeam() &&
         (!player->GetSession()->HasPermission(rbac::RBAC_PERM_TWO_SIDE_INTERACTION_CHANNEL) ||
         !newp->GetSession()->HasPermission(rbac::RBAC_PERM_TWO_SIDE_INTERACTION_CHANNEL))))
