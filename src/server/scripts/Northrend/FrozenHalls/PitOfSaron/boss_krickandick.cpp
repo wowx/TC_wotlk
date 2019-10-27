@@ -152,6 +152,14 @@ struct boss_ick : public BossAI
         _oldTargetThreat = 0.0f;
     }
 
+    void JustSummoned(Creature* summon) override
+    {
+        if (summon->GetEntry() == NPC_KRICK)
+            return;
+
+        BossAI::JustSummoned(summon);
+    }
+
     void JustEngagedWith(Unit* /*who*/) override
     {
         _JustEngagedWith();
@@ -194,15 +202,14 @@ struct boss_ick : public BossAI
             case ACTION_RESET_THREAT:
                 me->GetThreatManager().ClearFixate();
 
-                if (Unit* current = me->GetVictim())
-                    ResetThreat(current);
-
                 if (Unit* oldTarget = ObjectAccessor::GetUnit(*me, _oldTargetGUID))
                 {
                     AddThreat(oldTarget, _oldTargetThreat);
                     _oldTargetGUID.Clear();
                     _oldTargetThreat = 0.0f;
                 }
+                if (Unit* current = me->GetVictim())
+                    ResetThreat(current);
                 break;
             default:
                 break;
