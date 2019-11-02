@@ -133,11 +133,11 @@ class boss_hakkar : public CreatureScript
                         {
                             // Mind Control is only triggered when there is more than one unit currently fighting Hakkar, including pets/guardians
                             // But it is only actually cast on the player with the highest threat
-                            std::list<Unit*> unitList;
+                            /*std::list<Unit*> unitList;
                             SelectTargetList(unitList, 2, SELECT_TARGET_MAXTHREAT, 0, 0.0f, false);
                             if (unitList.size() > 1)
                                 DoCast(SelectTarget(SELECT_TARGET_MAXTHREAT, 0, 100, true), SPELL_WILL_OF_HAKKAR);
-                            events.ScheduleEvent(EVENT_WILL_OF_HAKKAR, 25s, 35s);
+                            events.ScheduleEvent(EVENT_WILL_OF_HAKKAR, 25s, 35s);*/
                             break;
                         }
                         case EVENT_ENRAGE:
