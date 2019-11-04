@@ -102,7 +102,7 @@ enum Spells
     SPELL_PORTAL_BEAM                        = 56046, // Malygos cast on portal to activate it during PHASE_NOT_STARTED
 
     //Phase I
-    SPELL_BERSERK                           = 60670,
+    SPELL_BERSERK                            = 60670,
     SPELL_MALYGOS_BERSERK                    = 47008, // it's the berserk spell that will hit only Malygos after 10 min of 60670
     SPELL_PORTAL_VISUAL_CLOSED               = 55949,
     SPELL_SUMMON_POWER_PARK                  = 56142,
@@ -322,7 +322,7 @@ enum MiscData
     // DATA_THIRD_SURGE_TARGET_GUID  = 16,
     DATA_LAST_TARGET_BARRAGE_GUID    = 17,
 
-    NUM_MAX_SURGE_TARGETS            = 3,
+    NUM_MAX_SURGE_TARGETS            = 1, // 3
 };
 
 // Used to check if summons guids come from vehicles

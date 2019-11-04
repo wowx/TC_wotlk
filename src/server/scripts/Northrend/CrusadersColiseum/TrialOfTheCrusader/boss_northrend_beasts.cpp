@@ -184,7 +184,7 @@ enum Misc
 {
     DATA_NEW_TARGET         = 1,
     GORMOK_HAND_SEAT        = 4,
-    MAX_SNOBOLDS            = 4,
+    MAX_SNOBOLDS            = 2,
     SPLINE_INITIAL_MOVEMENT = 1
 };
 
@@ -421,7 +421,7 @@ struct npc_snobold_vassal : public ScriptedAI
     void JustEngagedWith(Unit* /*who*/) override
     {
         _events.ScheduleEvent(EVENT_CHECK_MOUNT, 3s);
-        _events.ScheduleEvent(EVENT_FIRE_BOMB, 12s, 25s);
+        _events.ScheduleEvent(EVENT_FIRE_BOMB, 20s, 25s);
     }
 
     void JustDied(Unit* /*killer*/) override
@@ -434,7 +434,7 @@ struct npc_snobold_vassal : public ScriptedAI
         switch (action)
         {
             case ACTION_ENABLE_FIRE_BOMB:
-                _events.ScheduleEvent(EVENT_FIRE_BOMB, 12s, 25s);
+                _events.ScheduleEvent(EVENT_FIRE_BOMB, 20s, 25s);
                 break;
             case ACTION_DISABLE_FIRE_BOMB:
                 _events.CancelEvent(EVENT_FIRE_BOMB);
