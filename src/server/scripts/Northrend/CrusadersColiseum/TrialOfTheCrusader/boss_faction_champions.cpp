@@ -410,7 +410,7 @@ class boss_toc_champion_controller : public CreatureScript
                 vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_WARLOCK : NPC_ALLIANCE_WARLOCK);
                 vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_WARRIOR : NPC_ALLIANCE_WARRIOR);
 
-                uint8 healersSubtracted = 2;
+                uint8 healersSubtracted = 1;
                 if (instance->instance->GetSpawnMode() == RAID_DIFFICULTY_25MAN_NORMAL || instance->instance->GetSpawnMode() == RAID_DIFFICULTY_25MAN_HEROIC)
                     healersSubtracted = 1;
                 for (uint8 i = 0; i < healersSubtracted; ++i)
@@ -449,7 +449,7 @@ class boss_toc_champion_controller : public CreatureScript
                 }
 
                 if (instance->instance->GetSpawnMode() == RAID_DIFFICULTY_10MAN_NORMAL || instance->instance->GetSpawnMode() == RAID_DIFFICULTY_10MAN_HEROIC)
-                    for (uint8 i = 0; i < 4; ++i)
+                    for (uint8 i = 0; i < 2; ++i)
                         vOtherEntries.erase(vOtherEntries.begin() + urand(0, vOtherEntries.size() - 1));
 
                 std::vector<uint32> vChampionEntries;
@@ -466,10 +466,10 @@ class boss_toc_champion_controller : public CreatureScript
             {
                 std::vector<Position> vChampionJumpOrigin;
                 if (playerTeam == ALLIANCE)
-                    for (uint8 i = 0; i < 5; i++)
+                    for (uint8 i = 0; i < 3; i++) // 5
                         vChampionJumpOrigin.push_back(FactionChampionLoc[i]);
                 else
-                    for (uint8 i = 5; i < 10; i++)
+                    for (uint8 i = 5; i < 8; i++) // 10
                         vChampionJumpOrigin.push_back(FactionChampionLoc[i]);
 
                 std::vector<Position> vChampionJumpTarget;
@@ -793,22 +793,22 @@ class npc_toc_druid : public CreatureScript
                         case EVENT_LIFEBLOOM:
                             if (Unit* target = DoSelectLowestHpFriendly(40.0f))
                                 DoCast(target, SPELL_LIFEBLOOM);
-                            events.ScheduleEvent(EVENT_LIFEBLOOM, 5s, 15s);
+                            events.ScheduleEvent(EVENT_LIFEBLOOM, 6s, 15s);
                             return;
                         case EVENT_NOURISH:
                             if (Unit* target = DoSelectLowestHpFriendly(40.0f))
                                 DoCast(target, SPELL_NOURISH);
-                            events.ScheduleEvent(EVENT_NOURISH, 5s, 15s);
+                            events.ScheduleEvent(EVENT_NOURISH, 6s, 15s);
                             return;
                         case EVENT_REGROWTH:
                             if (Unit* target = DoSelectLowestHpFriendly(40.0f))
                                 DoCast(target, SPELL_REGROWTH);
-                            events.ScheduleEvent(EVENT_REGROWTH, 5s, 15s);
+                            events.ScheduleEvent(EVENT_REGROWTH, 6s, 15s);
                             return;
                         case EVENT_REJUVENATION:
                             if (Unit* target = DoSelectLowestHpFriendly(40.0f))
                                 DoCast(target, SPELL_REJUVENATION);
-                            events.ScheduleEvent(EVENT_REJUVENATION, 5s, 15s);
+                            events.ScheduleEvent(EVENT_REJUVENATION, 6s, 15s);
                             return;
                         case EVENT_TRANQUILITY:
                             DoCastAOE(SPELL_TRANQUILITY);
@@ -885,7 +885,7 @@ class npc_toc_shaman : public CreatureScript
                         case EVENT_HEALING_WAVE:
                             if (Unit* target = DoSelectLowestHpFriendly(40.0f))
                                 DoCast(target, SPELL_HEALING_WAVE);
-                            events.ScheduleEvent(EVENT_HEALING_WAVE, 3s, 5s);
+                            events.ScheduleEvent(EVENT_HEALING_WAVE, 4s, 5s);
                             return;
                         case EVENT_RIPTIDE:
                             if (Unit* target = DoSelectLowestHpFriendly(40.0f))
@@ -1082,7 +1082,7 @@ class npc_toc_priest : public CreatureScript
                         case EVENT_RENEW:
                             if (Unit* target = DoSelectLowestHpFriendly(40.0f))
                                 DoCast(target, SPELL_RENEW);
-                            events.ScheduleEvent(EVENT_RENEW, 3s, 5s);
+                            events.ScheduleEvent(EVENT_RENEW, 4s, 5s);
                             return;
                         case EVENT_SHIELD:
                             if (Unit* target = DoSelectLowestHpFriendly(40.0f))
@@ -1172,7 +1172,7 @@ class npc_toc_shadow_priest : public CreatureScript
                         case EVENT_SILENCE:
                             if (Unit* target = SelectEnemyCaster(true))
                                 DoCast(target, SPELL_SILENCE);
-                            events.ScheduleEvent(EVENT_SILENCE, 10s, 25s);
+                            events.ScheduleEvent(EVENT_SILENCE, 20s, 25s);
                             return;
                         case EVENT_VAMPIRIC_TOUCH:
                             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 30.0f, true))
@@ -1190,7 +1190,7 @@ class npc_toc_shadow_priest : public CreatureScript
                             return;
                         case EVENT_HORROR:
                             DoCastVictim(SPELL_HORROR);
-                            events.ScheduleEvent(EVENT_HORROR, 15s, 35s);
+                            events.ScheduleEvent(EVENT_HORROR, 25s, 35s);
                             return;
                         case EVENT_DISPERSION:
                             if (HealthBelowPct(40))
@@ -1209,7 +1209,7 @@ class npc_toc_shadow_priest : public CreatureScript
                         case EVENT_DPS_PSYCHIC_SCREAM:
                             if (EnemiesInRange(10.0f) >= 2)
                                 DoCastAOE(SPELL_PSYCHIC_SCREAM);
-                            events.ScheduleEvent(EVENT_DPS_PSYCHIC_SCREAM, 10s, 25s);
+                            events.ScheduleEvent(EVENT_DPS_PSYCHIC_SCREAM, 20s, 25s);
                             return;
                         default:
                             return;
@@ -1241,7 +1241,7 @@ class npc_toc_warlock : public CreatureScript
                 events.ScheduleEvent(EVENT_CORRUPTION, 2s, 5s);
                 events.ScheduleEvent(EVENT_CURSE_OF_AGONY, 5s, 10s);
                 events.ScheduleEvent(EVENT_CURSE_OF_EXHAUSTION, 5s, 10s);
-                events.ScheduleEvent(EVENT_FEAR, 5s, 15s);
+                events.ScheduleEvent(EVENT_FEAR, 12s, 15s);
                 events.ScheduleEvent(EVENT_SEARING_PAIN, 5s, 12s);
                 events.ScheduleEvent(EVENT_UNSTABLE_AFFLICTION, 7s, 15s);
                 SetEquipmentSlots(false, 49992, EQUIP_NO_CHANGE, EQUIP_NO_CHANGE);
@@ -1291,7 +1291,7 @@ class npc_toc_warlock : public CreatureScript
                         case EVENT_FEAR:
                             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, 20.0f, true))
                                 DoCast(target, SPELL_FEAR);
-                            events.ScheduleEvent(EVENT_FEAR, 5s, 20s);
+                            events.ScheduleEvent(EVENT_FEAR, 15s, 20s);
                             return;
                         case EVENT_SEARING_PAIN:
                             DoCastVictim(SPELL_SEARING_PAIN);
@@ -1375,7 +1375,7 @@ class npc_toc_mage : public CreatureScript
                         case EVENT_COUNTERSPELL:
                             if (Unit* target = SelectEnemyCaster(true))
                                 DoCast(target, SPELL_COUNTERSPELL);
-                            events.ScheduleEvent(EVENT_COUNTERSPELL, 24s);
+                            events.ScheduleEvent(EVENT_COUNTERSPELL, 54s);
                             return;
                         case EVENT_FROST_NOVA:
                             if (EnemiesInRange(10.0f) >= 2)
@@ -1394,7 +1394,7 @@ class npc_toc_mage : public CreatureScript
                         case EVENT_POLYMORPH:
                             if (Unit* target = SelectTarget(SELECT_TARGET_RANDOM, 0, NonTankTargetSelector(me)))
                                 DoCast(target, SPELL_POLYMORPH);
-                            events.ScheduleEvent(EVENT_POLYMORPH, 10s, 30s);
+                            events.ScheduleEvent(EVENT_POLYMORPH, 20s, 30s);
                             return;
                         default:
                             return;
