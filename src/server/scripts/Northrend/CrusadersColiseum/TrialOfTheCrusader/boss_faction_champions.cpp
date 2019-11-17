@@ -344,14 +344,14 @@ Position const FactionChampionLoc[] =
     { 514.231f, 105.569f, 418.234f, 0 },               //  0 - Horde Initial Pos 0
     { 508.334f, 115.377f, 418.234f, 0 },               //  1 - Horde Initial Pos 1
     { 506.454f, 126.291f, 418.234f, 0 },               //  2 - Horde Initial Pos 2
-    { 506.243f, 106.596f, 421.592f, 0 },               //  3 - Horde Initial Pos 3
-    { 499.885f, 117.717f, 421.557f, 0 },               //  4 - Horde Initial Pos 4
+/*    { 506.243f, 106.596f, 421.592f, 0 },               //  3 - Horde Initial Pos 3
+    { 499.885f, 117.717f, 421.557f, 0 },               //  4 - Horde Initial Pos 4*/
 
     { 613.127f, 100.443f, 419.74f, 0 },                //  5 - Ally Initial Pos 0
     { 621.126f, 128.042f, 418.231f, 0 },               //  6 - Ally Initial Pos 1
     { 618.829f, 113.606f, 418.232f, 0 },               //  7 - Ally Initial Pos 2
-    { 625.845f, 112.914f, 421.575f, 0 },               //  8 - Ally Initial Pos 3
-    { 615.566f, 109.653f, 418.234f, 0 },               //  9 - Ally Initial Pos 4
+/*    { 625.845f, 112.914f, 421.575f, 0 },               //  8 - Ally Initial Pos 3
+    { 615.566f, 109.653f, 418.234f, 0 },               //  9 - Ally Initial Pos 4*/
 
     { 535.469f, 113.012f, 394.66f, 0 },                // 10 - Horde Final Pos 0
     { 526.417f, 137.465f, 394.749f, 0 },               // 11 - Horde Final Pos 1
@@ -396,21 +396,21 @@ class boss_toc_champion_controller : public CreatureScript
             {
                 std::vector<uint32> vHealersEntries;
                 vHealersEntries.clear();
-                vHealersEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_DRUID_RESTORATION : NPC_ALLIANCE_DRUID_RESTORATION);
+                // vHealersEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_DRUID_RESTORATION : NPC_ALLIANCE_DRUID_RESTORATION);
                 vHealersEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_PALADIN_HOLY : NPC_ALLIANCE_PALADIN_HOLY);
-                vHealersEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_PRIEST_DISCIPLINE : NPC_ALLIANCE_PRIEST_DISCIPLINE);
+                // vHealersEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_PRIEST_DISCIPLINE : NPC_ALLIANCE_PRIEST_DISCIPLINE);
                 vHealersEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_SHAMAN_RESTORATION : NPC_ALLIANCE_SHAMAN_RESTORATION);
 
                 std::vector<uint32> vOtherEntries;
                 vOtherEntries.clear();
                 vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_DEATH_KNIGHT : NPC_ALLIANCE_DEATH_KNIGHT);
                 vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_HUNTER : NPC_ALLIANCE_HUNTER);
-                vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_MAGE : NPC_ALLIANCE_MAGE);
+                // vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_MAGE : NPC_ALLIANCE_MAGE);
                 vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_ROGUE : NPC_ALLIANCE_ROGUE);
-                vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_WARLOCK : NPC_ALLIANCE_WARLOCK);
+                // vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_WARLOCK : NPC_ALLIANCE_WARLOCK);
                 vOtherEntries.push_back(playerTeam == ALLIANCE ? NPC_HORDE_WARRIOR : NPC_ALLIANCE_WARRIOR);
 
-                uint8 healersSubtracted = 1;
+                uint8 healersSubtracted = 2;
                 if (instance->instance->GetSpawnMode() == RAID_DIFFICULTY_25MAN_NORMAL || instance->instance->GetSpawnMode() == RAID_DIFFICULTY_25MAN_HEROIC)
                     healersSubtracted = 1;
                 for (uint8 i = 0; i < healersSubtracted; ++i)
@@ -418,24 +418,24 @@ class boss_toc_champion_controller : public CreatureScript
                     uint8 pos = urand(0, vHealersEntries.size() - 1);
                     switch (vHealersEntries[pos])
                     {
-                        case NPC_ALLIANCE_DRUID_RESTORATION:
+                        /*case NPC_ALLIANCE_DRUID_RESTORATION:
                             vOtherEntries.push_back(NPC_ALLIANCE_DRUID_BALANCE);
                             break;
                         case NPC_HORDE_DRUID_RESTORATION:
                             vOtherEntries.push_back(NPC_HORDE_DRUID_BALANCE);
-                            break;
+                            break;*/
                         case NPC_ALLIANCE_PALADIN_HOLY:
                             vOtherEntries.push_back(NPC_ALLIANCE_PALADIN_RETRIBUTION);
                             break;
                         case NPC_HORDE_PALADIN_HOLY:
                             vOtherEntries.push_back(NPC_HORDE_PALADIN_RETRIBUTION);
                             break;
-                        case NPC_ALLIANCE_PRIEST_DISCIPLINE:
+                        /*case NPC_ALLIANCE_PRIEST_DISCIPLINE:
                             vOtherEntries.push_back(NPC_ALLIANCE_PRIEST_SHADOW);
                             break;
                         case NPC_HORDE_PRIEST_DISCIPLINE:
                             vOtherEntries.push_back(NPC_HORDE_PRIEST_SHADOW);
-                            break;
+                            break;*/
                         case NPC_ALLIANCE_SHAMAN_RESTORATION:
                             vOtherEntries.push_back(NPC_ALLIANCE_SHAMAN_ENHANCEMENT);
                             break;

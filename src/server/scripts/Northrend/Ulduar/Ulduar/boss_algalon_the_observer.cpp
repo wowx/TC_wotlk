@@ -201,11 +201,11 @@ enum AlgalonMovePoints
     POINT_ALGALON_OUTRO
 };
 
-#define LIVING_CONSTELLATION_COUNT 11
+#define LIVING_CONSTELLATION_COUNT 2 // 11
 Position const ConstellationPos[LIVING_CONSTELLATION_COUNT] =
 {
     {1625.208f, -267.2771f, 446.4296f, 5.044002f},
-    {1658.279f, -262.5490f, 441.9073f, 4.188790f},
+/*    {1658.279f, -262.5490f, 441.9073f, 4.188790f},
     {1678.677f, -276.3280f, 427.7531f, 3.979351f},
     {1593.389f, -299.4325f, 432.4636f, 6.073746f},
     {1685.613f, -300.1219f, 443.2366f, 3.385939f},
@@ -213,16 +213,16 @@ Position const ConstellationPos[LIVING_CONSTELLATION_COUNT] =
     {1668.317f, -324.7676f, 457.9394f, 3.211406f},
     {1592.242f, -325.5323f, 446.9508f, 0.226893f},
     {1635.821f, -363.3442f, 424.3459f, 1.466077f},
-    {1672.188f, -357.2484f, 436.7337f, 2.338741f},
+    {1672.188f, -357.2484f, 436.7337f, 2.338741f}, */
     {1615.800f, -348.0065f, 442.9586f, 1.134464f}
 };
 
-#define COLLAPSING_STAR_COUNT 4
+#define COLLAPSING_STAR_COUNT 2 // 4
 Position const CollapsingStarPos[COLLAPSING_STAR_COUNT] =
 {
     {1649.438f, -319.8127f, 418.3941f, 1.082104f},
-    {1647.005f, -288.6790f, 417.3955f, 3.490659f},
-    {1622.451f, -321.1563f, 417.6188f, 4.677482f},
+/*    {1647.005f, -288.6790f, 417.3955f, 3.490659f},
+    {1622.451f, -321.1563f, 417.6188f, 4.677482f}, */
     {1615.060f, -291.6816f, 417.7796f, 3.490659f}
 };
 
@@ -585,7 +585,7 @@ struct boss_algalon_the_observer : public BossAI
                 }
                 case EVENT_QUANTUM_STRIKE:
                     DoCastVictim(SPELL_QUANTUM_STRIKE);
-                    events.Repeat(3s, 5s);
+                    events.Repeat(13s, 15s);
                     break;
                 case EVENT_PHASE_PUNCH:
                     DoCastVictim(SPELL_PHASE_PUNCH);
@@ -1044,13 +1044,13 @@ class spell_algalon_phase_punch : public AuraScript
         if (GetStackAmount() != 1)
             GetTarget()->RemoveAurasDueToSpell(PhasePunchAlphaId[GetStackAmount() - 2]);
         GetTarget()->CastSpell(GetTarget(), PhasePunchAlphaId[GetStackAmount() - 1], TRIGGERED_FULL_MASK);
-        if (GetStackAmount() == 5)
+        if (GetStackAmount() == 3)
             Remove(AURA_REMOVE_BY_DEFAULT);
     }
 
     void OnRemove(AuraEffect const*, AuraEffectHandleModes)
     {
-        if (GetStackAmount() != 5)
+        if (GetStackAmount() != 3)
             GetTarget()->RemoveAurasDueToSpell(PhasePunchAlphaId[GetStackAmount() - 1]);
     }
 
