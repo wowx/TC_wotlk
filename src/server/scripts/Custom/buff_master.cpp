@@ -17,7 +17,8 @@
 #include "SpellMgr.h"
 #include "Language.h"
 
-#define BUFF_COST 200000 // 20 golds
+#define BUFF_COST1 100000 // 10 golds
+#define BUFF_COST2 100000 // 10 golds
 
 enum spells
 {
@@ -33,13 +34,15 @@ Thorns = 53307,                 //'Thorns'
 Horn_of_Winter = 57623,         //'Horn of Winter'
 Arcane_Intelect = 42995,        //'Arcane Intelect'
 Berserk_100 = 41924,            //'Berserk 100%'
-Berserk_500 = 46587             //'Berserk 500%'
+Berserk_500 = 46587,            //'Berserk 500%'
+Conjured_Mana_Strudel = 43523	//'Conjured Mana Strudel'
 };
 
-uint32 tank_auras[] = { 47883,20217,48161,48073,48169,48469,53307,57623,42995,41924,46587 };
-uint32 dmg_auras[] = { 47883,48932,48161,48073,48169,48469,57623,42995,41924,46587 };
-uint32 spell_auras[] = { 47883,48936,48161,48073,48169,48469,57623,42995,41924,46587 };
-uint32 heal_auras[] = { 47883,48936,48161,48073,48169,48469,57623,42995,41924,46587 };
+uint32 tank_auras[] = { 47883,20217,48161,48073,48169,48469,53307,57623,42995,43523 };
+uint32 dmg_auras[] = { 47883,48932,48161,48073,48169,48469,53307,57623,42995,43523 };
+uint32 spell_auras[] = { 47883,48936,48161,48073,48169,48469,53307,57623,42995,43523 };
+uint32 heal_auras[] = { 47883,48936,48161,48073,48169,48469,53307,57623,42995,43523 };
+uint32 zone_id[] = { 206,876,1196,2159,3456,3457,3606,3607,3717,3805,3836,3845,3923,3959,4075,4100,4196,4228,4264,4265,4272,4273,4277,4415,4416,4493,4494,4500,4603,4722,4723,4809,4812,4813,4820,4987};
 
 class Npc_Buff_master : public CreatureScript
 {
@@ -51,9 +54,9 @@ public:
         if(!player)
             return true;
 
-        if(player->GetMoney() < BUFF_COST)
+        if(player->GetMoney() < BUFF_COST1 || player->GetMoney() < BUFF_COST2)
         {
-           player->GetSession()->SendNotification("You can not do it now! You must have 20 golds.");
+           player->GetSession()->SendNotification("You can not do it now! You must have 10 golds.");
            return true;
         }
 
@@ -67,11 +70,13 @@ public:
         }
 
         // Buffs menu
-        AddGossipItemFor(player, 6, "|cffff0000Buffs cost 20 golds.|r", GOSSIP_SENDER_MAIN, 0);
+        AddGossipItemFor(player, 6, "|cffff0000Buffs cost 10 golds.|r", GOSSIP_SENDER_MAIN, 0);
         AddGossipItemFor(player, 6, "|TInterface/ICONS/Spell_holy_devotionaura:30:30:-18:0|t TANK buffs", GOSSIP_SENDER_MAIN, 10);
         AddGossipItemFor(player, 6, "|TInterface/ICONS/Spell_holy_fistofjustice:30:30:-18:0|t DMG buffs", GOSSIP_SENDER_MAIN, 20);
         AddGossipItemFor(player, 6, "|TInterface/ICONS/Ability_marksmanship:30:30:-18:0|t SPELL buffs", GOSSIP_SENDER_MAIN, 30);
         AddGossipItemFor(player, 6, "|TInterface/ICONS/Spell_nature_healingtouch:30:30:-18:0|t HEAL buffs", GOSSIP_SENDER_MAIN, 40);
+        AddGossipItemFor(player, 6, "|cffff0000Berserk cost 10 golds.|r", GOSSIP_SENDER_MAIN, 0);
+        AddGossipItemFor(player, 6, "|TInterface/ICONS/Spell_shadow_unholyfrenzy:30:30:-18:0|t Berserk (Just in Raid and Dungeon)", GOSSIP_SENDER_MAIN, 60);
         AddGossipItemFor(player, 6, "|cffff0000|TInterface/ICONS/Ability_spy:30:30:-18:0|t Close Buffmaster Window.|r", GOSSIP_SENDER_MAIN, 50);
         SendGossipMenuFor(player, player->GetGossipTextId(m_creature), m_creature->GetGUID());
 
@@ -86,33 +91,43 @@ public:
         switch (action)
         {
         case 10: // TANK
-            for(int i = 0; i < 12; i++)
+            for(int i = 0; i < 11; i++)
                 player->CastSpell(player, tank_auras[i], true);
             // player->AddAura(tank_auras[i], player);
-            player->GetSession()->SendNotification("You are TANK buffed.");
-            m_creature->Whisper("You are TANK buffed.", LANG_UNIVERSAL, player, false);
-            player->SetMoney(player->GetMoney() - BUFF_COST);
+            player->GetSession()->SendNotification("You are TANK buffs.");
+            m_creature->Whisper("You are TANK buffs.", LANG_UNIVERSAL, player, false);
+            player->SetMoney(player->GetMoney() - BUFF_COST1);
             break;
         case 20: // DMG
             for(int i = 0; i < 11; i++)
                 player->CastSpell(player, dmg_auras[i], true);
-            player->GetSession()->SendNotification("You are DMG buffed.");
-            m_creature->Whisper("You are DMG buffed.", LANG_UNIVERSAL, player, false);
-            player->SetMoney(player->GetMoney() - BUFF_COST);
+            player->GetSession()->SendNotification("You are DMG buffs.");
+            m_creature->Whisper("You are DMG buffs.", LANG_UNIVERSAL, player, false);
+            player->SetMoney(player->GetMoney() - BUFF_COST1);
             break;
         case 30: // Spell
             for(int i = 0; i < 11; i++)
                 player->CastSpell(player, spell_auras[i], true);
-            player->GetSession()->SendNotification("You are SPELL buffed.");
-            m_creature->Whisper("You are SPELL buffed.", LANG_UNIVERSAL, player, false);
-            player->SetMoney(player->GetMoney() - BUFF_COST);
+            player->GetSession()->SendNotification("You are SPELL buffs.");
+            m_creature->Whisper("You are SPELL buffs.", LANG_UNIVERSAL, player, false);
+            player->SetMoney(player->GetMoney() - BUFF_COST1);
             break;
         case 40: // HEAL
             for(int i = 0; i < 11; i++)
                 player->CastSpell(player, heal_auras[i], true);
-            player->GetSession()->SendNotification("You are HEAL buffed.");
-            m_creature->Whisper("You are HEAL buffed.", LANG_UNIVERSAL, player, false);
-            player->SetMoney(player->GetMoney() - BUFF_COST);
+            player->GetSession()->SendNotification("You are HEAL buffs.");
+            m_creature->Whisper("You are HEAL buffs.", LANG_UNIVERSAL, player, false);
+            player->SetMoney(player->GetMoney() - BUFF_COST1);
+            break;
+        case 60: // Berserk
+            /*for(int i = 0; i < int size_of_array=size(zone_id); i++)
+            if (player->GetZoneId() != zone_id[i])
+                return true; */
+            player->CastSpell(player, 41924, true);
+            player->CastSpell(player, 46587, true);
+            player->GetSession()->SendNotification("You are Berserk buffs.");
+            m_creature->Whisper("You are Berserk buffs.", LANG_UNIVERSAL, player, false);
+            player->SetMoney(player->GetMoney() - BUFF_COST2);
             break;
 
         case 50: // Bye
