@@ -22,7 +22,7 @@
 #include "SQLOperation.h"
 #include <future>
 #include <vector>
-#include <variant>
+// #include <variant>
 
 struct PreparedStatementData
 {
